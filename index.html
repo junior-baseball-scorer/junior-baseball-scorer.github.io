@@ -173,6 +173,17 @@ i.bdg.run{background:var(--run)}
 .lrowx small{font-size:11px;margin-left:4px}.lrowx button{margin-left:auto}
 .rv{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;font-size:14px}.rv small{color:var(--sub);margin-left:4px;font-size:11px}
 i.bdg.prov{background:#8a6a00;margin-left:4px}
+.gcard.cur{border:2px solid var(--pri)}
+.gtop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.gsc{font-size:16px;margin:6px 0}.gsc small{color:var(--sub);font-size:11px;margin-left:4px}
+.wl{display:inline-block;min-width:44px;text-align:center;border-radius:6px;padding:1px 6px;margin-right:8px;font-weight:800;font-size:13px;background:#e3e8e4;color:var(--sub)}
+.wl.w勝{background:var(--pri);color:#fff}.wl.w負{background:var(--out);color:#fff}.wl.w分{background:#d6a400;color:#fff}
+.chk2{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:14px;margin:4px 0}.chk2 input{width:20px;height:20px;margin:0}
+.gbtn{display:grid;grid-template-columns:2fr 1.4fr 1fr;gap:6px;margin-top:6px}.gbtn button{padding:10px 4px;font-size:14px}
+.fbtn{display:block;text-align:center;border:1px solid var(--pri);color:var(--pri);border-radius:10px;padding:12px;font-size:15px;font-weight:700;margin:6px 0;cursor:pointer}
+.fbtn input{display:none}
+table.car td.stick,table.car th.stick{position:sticky;left:0;background:#fff;z-index:1;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+i.bdg.gray{background:#9aa8a0;margin-left:4px}
 .benchcnt{float:right;font-size:12px;color:var(--sub);font-weight:400}
 /* 成績 */
 .tw2{overflow-x:auto}
@@ -262,7 +273,8 @@ button.chip .pseq2{flex-wrap:wrap;gap:2px 1.5px}
   <button data-a="tab" data-k="rec">記録</button>
   <button data-a="tab" data-k="log">経過</button>
   <button data-a="tab" data-k="stats">成績</button>
-  <button data-a="tab" data-k="data">データ</button>
+  <button data-a="tab" data-k="list">一覧</button>
+  <button data-a="tab" data-k="career">通算</button>
 </nav>
 <div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
 <div id="toast" class="hidden"></div>
@@ -1063,14 +1075,12 @@ function modalPaDetail() {
 }
 
 // ===== 画面 =====
-const KEY = 'scorebook_proto_v1';
+const KEY = 'scorebook_proto_v1'; // 以前の版(1試合だけ)の保存場所。起動時に試合一覧へ移す
 let store = { game: null, events: [] };
-let ui = { tab: 'rec', modal: null, toast: '' };
+let ui = { tab: 'rec', modal: null, toast: '', view: null };
 let S = null; // 現在の状況(eventsから計算)
 
 function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function load() { try { const t = localStorage.getItem(KEY); if (t) store = JSON.parse(t); } catch (e) { } }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { } }
 function teamName(side) { const g = store.game; return side === g.ourSide ? g.ourName : g.oppName; }
 function recompute() { S = store.game ? replay(store.game, store.events) : null; }
 function push(ev) {
@@ -1278,6 +1288,7 @@ function renderSetup() {
     <td><input name="tnm${i}" placeholder="(任意)"></td>
     <td><select name="tp${i}">${posOptions(pos)}</select></td></tr>`).join('');
   return `<form id="setup" class="page">
+  <button type="button" data-a="tolist" class="mini" style="margin-top:8px">← 試合一覧に戻る</button>
   <h1>新しい試合</h1>
   <div class="card">
     <label>日付<input type="date" name="date" value="${d}"></label>
@@ -1285,6 +1296,7 @@ function renderSetup() {
     <div class="row2">
       <label>種別<select name="type"><option>公式戦</option><option>練習試合</option><option>その他</option></select></label>
       <label class="chk"><input type="checkbox" name="include" checked> 通算成績に含める</label>
+      <p class="note" style="grid-column:1/-1;margin:0">「通算成績に含める」は、公式戦・練習試合はオン、その他はオフが初期値です(試合一覧で後から変更できます)。</p>
     </div>
     <div class="row2">
       <label>自チーム<input name="ourName" value="${esc(roster.team || '自チーム')}"></label>
@@ -1302,6 +1314,10 @@ function renderSetup() {
     <div class="row2">
       <label>投球上限(5年以上)<input name="limUp" type="number" value="70"></label>
       <label>投球上限(4年以下)<input name="limLo" type="number" value="60"></label>
+    </div>
+    <div class="row2">
+      <label>1週間の上限(5年以上)<input name="limWkUp" type="number" value="210"></label>
+      <label>1週間の上限(4年以下)<input name="limWkLo" type="number" value="180"></label>
     </div>
     <p class="note">タイブレーク:規定回を終えて同点なら、無死一・二塁から始めます。</p>
   </div>
@@ -1351,15 +1367,15 @@ function startGame() {
   bench[ourSide] = ourB; bench[1 - ourSide] = oppB;
   store = {
     game: {
-      format: 'scorebook', version: 1, id: Date.now().toString(36),
+      format: 'scorebook', version: 2, id: newGameId(),
       date: v('date'), tournament: v('tournament'), type: v('type'), includeTotals: f.elements.include.checked,
       ourName: v('ourName') || '自チーム', oppName: v('oppName') || '相手チーム', ourSide,
       innings: parseInt(v('innings'), 10) || 6, timeLimit: parseInt(v('timeLimit'), 10) || 0, tiebreak: f.elements.tiebreak.checked,
-      limits: { upper: parseInt(v('limUp'), 10) || 70, lower: parseInt(v('limLo'), 10) || 60 },
+      limits: { upper: parseInt(v('limUp'), 10) || 70, lower: parseInt(v('limLo'), 10) || 60, weekUpper: parseInt(v('limWkUp'), 10) || 210, weekLower: parseInt(v('limWkLo'), 10) || 180 },
       lineups, bench, startedAt: null,
     }, events: []
   };
-  save(); recompute(); ui.tab = 'rec'; render(); window.scrollTo(0, 0);
+  ui.view = null; save(); recompute(); ui.tab = 'rec'; render(); window.scrollTo(0, 0);
 }
 
 // ---------- 記録画面 ----------
@@ -1433,11 +1449,17 @@ function renderRec() {
     const lim = pit.side === g.ourSide ? pitchLimitFor(g, pit.p) : g.limits.upper;
     const cls = lim && cnt >= lim ? 'over' : lim && cnt >= lim - 10 ? 'warn' : '';
     const msg = cls === 'over' ? '<b>上限到達:この打者の打撃完了まで投球できます</b>' : cls === 'warn' ? `<b>上限まであと${lim - cnt}球</b>` : '';
-    pitHtml = `<div class="pit ${cls}"><span>投手 ${esc(plabel(pit.p))}${S.over ? '' : ' <button data-a="subq" data-k="p" class="mini qs">投手交代</button>'}</span><span class="pc">${cnt}<small>球${lim ? ' / ' + lim : ''}</small></span>${msg ? '<div class="pmsg">' + msg + '</div>' : ''}</div>`;
+    let wk = '';
+    if (pit.side === g.ourSide && g.date) {
+      const log = pitchLog(), pid = pidOf(pkey(pit.side, pit.p)), wsum = weekTotal(log, pid, g.date), wlim = weekLimit(log[pid] || [{ grade: pit.p.grade, lim: g.limits }]);
+      wk = `<div class="pmsg note">直近7日 ${wsum}球 / ${wlim}(${isAdmin() ? 'この端末に集めた記録' : 'この端末の記録だけ'})${wsum >= wlim ? ' <b class="fo">週の上限に達しています</b>' : ''}</div>`;
+    }
+    pitHtml = `<div class="pit ${cls}"><span>投手 ${esc(plabel(pit.p))}${S.over ? '' : ' <button data-a="subq" data-k="p" class="mini qs">投手交代</button>'}</span><span class="pc">${cnt}<small>球${lim ? ' / ' + lim : ''}</small></span>${msg ? '<div class="pmsg">' + msg + '</div>' : ''}${wk}</div>`;
   }
   const paP = S.pa ? (S.pa.pitches.length > 12 ? '…' : '') + S.pa.pitches.slice(-12).map(k => PITCH_LABEL[k]).join(' ') + (S.pa.pitches.length > 12 ? '(この打席' + S.pa.pitches.length + '球)' : '') : '';
   const recent = S.log.filter(l => l.type !== 'change').slice(-3).reverse().map(logLine).join('');
-  const over = S.over ? `<div class="banner">${esc(S.endReason)}  ${esc(teamName(0))} ${total(S.score[0])} - ${total(S.score[1])} ${esc(teamName(1))}</div>` : '';
+  const over = S.over ? `<div class="banner">${esc(S.endReason)}  ${esc(teamName(0))} ${total(S.score[0])} - ${total(S.score[1])} ${esc(teamName(1))}</div>
+    <button data-a="gexp" data-k="${g.id}" class="big primary" style="margin-bottom:8px">試合データを${isAdmin() ? '保存する(Googleドライブ)' : '管理者に送る'}</button>` : '';
   const pw = posWarn();
   const tw = !S.over && timeOver() ? `<div class="tw">時間制限(${g.timeLimit}分)を過ぎました。新しいイニングに入りません。</div>` : '';
   return `<div class="page rec">
@@ -1887,18 +1909,276 @@ function renderStats() {
   return h + '<p class="note">自責点は、失策・捕逸・打撃妨害がなかった場合のアウト数をもとに自動で判定しています(簡易判定)。盗塁阻止は「阻止数/企図数」です。</p></div>';
 }
 
-// ---------- データ ----------
-function renderData() {
-  const g = store.game;
-  return `<div class="page"><h1>試合データ</h1>
-  <div class="card"><p>${esc(g.date)} ${esc(g.tournament)}(${esc(g.type)}${g.includeTotals ? '・通算に含める' : '・通算に含めない'})</p>
-  <p>${esc(teamName(0))}(先攻) 対 ${esc(teamName(1))}(後攻)</p><p class="note">記録した出来事:${store.events.length}件</p></div>
-  <div class="card"><h2>書き出し</h2><p class="note">試作版では、データを文字としてコピーします。正式版ではファイルで保存・送信できるようにします。</p>
-  <button data-a="exp" class="big">データを表示してコピー</button>${ui.exp ? `<textarea id="expt" readonly>${esc(ui.exp)}</textarea><button data-a="copy">コピー</button>` : ''}</div>
-  <div class="card"><h2>読み込み</h2><textarea id="impt" placeholder="書き出したデータを貼り付け"></textarea><button data-a="imp">読み込む(今の試合と置き換え)</button></div>
-  <div class="card"><h2>選手名簿</h2><p class="note">自チームの在籍選手 ${activePlayers().length}名(この端末:${isAdmin() ? '管理者用' : '記録用'})。打順・控えの選択に使います。</p><button data-a="roster" style="width:100%">名簿を開く</button></div>
-  <div class="card"><h2>新しい試合</h2><button data-a="newg" class="danger">今の試合を消して新しい試合を始める</button></div>
-  <p class="note">試作版:データはこの端末のブラウザに保存されます。</p></div>`;
+// ---------- 試合の保存(複数試合) ----------
+// 1試合ずつブラウザのデータベース(IndexedDB)に保存する。使えない環境では localStorage。画面で使うときは全試合をメモリに置く
+const GKEY = 'scorebook_games_v2', CKEY = 'scorebook_current_v2', JKEY = 'scorebook_journal_v2';
+let games = {};   // id -> { id, game, events, upd, src: 'local'|'import' }
+let idb = null;
+const sumCache = {};
+function idbReq(r) { return new Promise((ok, ng) => { r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error); }); }
+function openDB() {
+  if (!window.indexedDB) return Promise.resolve(null);
+  const r = indexedDB.open('scorebook', 1);
+  r.onupgradeneeded = () => { r.result.createObjectStore('games', { keyPath: 'id' }); };
+  return idbReq(r);
+}
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+function newGameId() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+async function loadGames() {
+  try { idb = await openDB(); } catch (e) { idb = null; }
+  if (idb) {
+    try { (await idbReq(idb.transaction('games').objectStore('games').getAll())).forEach(r => { games[r.id] = r; }); }
+    catch (e) { idb = null; }
+  }
+  if (!idb) { try { games = JSON.parse(lsGet(GKEY) || '{}'); } catch (e) { games = {}; } }
+  // 以前の版(1試合だけ保存)のデータを引き継ぐ
+  const old = lsGet(KEY);
+  if (old) {
+    try {
+      const o = JSON.parse(old);
+      if (o.game) { if (!o.game.id) o.game.id = newGameId(); if (!games[o.game.id]) putGame({ id: o.game.id, game: o.game, events: o.events || [], src: 'local' }); lsSet(CKEY, o.game.id); }
+      localStorage.removeItem(KEY);
+    } catch (e) { }
+  }
+  // データベースへの保存は一瞬遅れるため、記録中の試合は localStorage にも即時に写しておき、新しいほうを使う(アプリが落ちても直前の1球まで残す)
+  try {
+    const j = JSON.parse(lsGet(JKEY) || 'null');
+    if (j && j.game && j.game.id) {
+      const g = games[j.game.id];
+      if (!g || stampOf(j.game, j.events) > stampOf(g.game, g.events) || j.events.length > g.events.length || (j.game.metaAt || 0) > (g.game.metaAt || 0)) putGame({ id: j.game.id, game: j.game, events: j.events, src: g ? g.src : 'local' });
+    }
+  } catch (e) { }
+  const cur = lsGet(CKEY);
+  store = cur && games[cur] ? { game: games[cur].game, events: games[cur].events } : { game: null, events: [] };
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { } // 消さない保存領域を申請
+}
+function putGame(rec) {
+  rec.upd = Date.now();
+  games[rec.id] = rec;
+  if (idb) { try { idb.transaction('games', 'readwrite').objectStore('games').put(rec); return; } catch (e) { } }
+  lsSet(GKEY, JSON.stringify(games));
+}
+function removeGame(id) {
+  delete games[id]; delete sumCache[id];
+  try { const j = JSON.parse(lsGet(JKEY) || 'null'); if (j && j.game && j.game.id === id) lsSet(JKEY, ''); } catch (e) { }
+  if (idb) { try { idb.transaction('games', 'readwrite').objectStore('games').delete(id); return; } catch (e) { } }
+  lsSet(GKEY, JSON.stringify(games));
+}
+// 1球ごとに呼ばれる:記録中の試合を保存
+function save() {
+  if (!store.game) { lsSet(CKEY, ''); return; }
+  const id = store.game.id, rec = games[id] || { id, src: 'local' };
+  rec.game = store.game; rec.events = store.events;
+  putGame(rec); lsSet(CKEY, id);
+  lsSet(JKEY, JSON.stringify({ game: store.game, events: store.events }));
+}
+function openGame(id) {
+  const r = games[id];
+  store = r ? { game: r.game, events: r.events } : { game: null, events: [] };
+  lsSet(CKEY, r ? id : ''); recompute();
+}
+// 試合の計算結果(出来事が変わらなければ使い回す)
+function replayRec(r) {
+  const ev = r.events, key = ev.length + ':' + (ev.length ? ev[ev.length - 1].at : 0);
+  let c = sumCache[r.id];
+  if (!c || c.key !== key || c.game !== r.game) c = sumCache[r.id] = { key, game: r.game, s: replay(r.game, ev) };
+  return c.s;
+}
+function tName(g, side) { return side === g.ourSide ? g.ourName : g.oppName; }
+function gameResult(r) {
+  const s = replayRec(r), o = r.game.ourSide, us = total(s.score[o]), them = total(s.score[1 - o]);
+  return { s, us, them, over: s.over, wl: !s.over ? '' : us > them ? '勝' : us < them ? '負' : '分' };
+}
+// 新しさ:最後の出来事の時刻(通算に含めるの切り替えなども含む)
+function stampOf(game, events) { let t = game.metaAt || 0; events.forEach(e => { if ((e.at || 0) > t) t = e.at; }); return t; }
+
+// ----- 書き出し・取り込み -----
+function gameFileText(r) { return JSON.stringify({ format: 'scorebook-game', version: 2, exportedAt: new Date().toISOString(), game: r.game, events: r.events }); }
+function safeName(t) { return String(t || '').replace(/[\\/:*?"<>|\s]/g, ''); }
+function gameFileName(g) { return (g.date || '日付なし') + '_vs' + (safeName(g.oppName) || '相手') + '.json'; }
+// スマホの共有(LINE・Googleドライブなど)で送る。共有できない端末ではダウンロード
+async function shareOrDownload(name, text) {
+  let file;
+  try { file = new File([text], name, { type: 'application/json' }); } catch (e) { file = null; }
+  try { if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return 'share'; } }
+  catch (e) { if (e && e.name === 'AbortError') return 'abort'; }
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file || new Blob([text], { type: 'application/json' })); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    return 'download';
+  } catch (e) { return 'fail'; }
+}
+function mergeGame(d, cnt) {
+  const g = d.game; if (!g || !Array.isArray(d.events)) return;
+  if (!g.id) g.id = newGameId();
+  const cur = games[g.id];
+  if (!cur) { putGame({ id: g.id, game: g, events: d.events, src: 'import' }); cnt.add++; return; }
+  const a = stampOf(cur.game, cur.events), b = stampOf(g, d.events);
+  if (b > a || (b === a && d.events.length > cur.events.length)) {
+    putGame({ id: g.id, game: g, events: d.events, src: cur.src }); delete sumCache[g.id]; cnt.upd++;
+    if (store.game && store.game.id === g.id) openGame(g.id);
+  } else cnt.same++;
+}
+// 試合ファイル・バックアップ・名簿のどれでも取り込める
+function importText(text, cnt) {
+  const d = JSON.parse(text);
+  if (d.format === 'scorebook-backup') {
+    if (d.roster) { const r = rosterImport(JSON.stringify(Object.assign({ format: 'scorebook-roster', version: 1 }, d.roster))); cnt.radd += r.add; cnt.rupd += r.upd; }
+    (d.games || []).forEach(x => mergeGame(x, cnt));
+  } else if (d.format === 'scorebook-roster') { const r = rosterImport(text); cnt.radd += r.add; cnt.rupd += r.upd; }
+  else if ((d.format === 'scorebook' || d.format === 'scorebook-game') && d.game) mergeGame(d, cnt);
+  else throw new Error('format');
+}
+function newCnt() { return { add: 0, upd: 0, same: 0, radd: 0, rupd: 0, bad: 0 }; }
+function cntText(c) {
+  const t = [];
+  if (c.add) t.push('試合を追加 ' + c.add); if (c.upd) t.push('試合を更新 ' + c.upd); if (c.same) t.push('変更なし ' + c.same);
+  if (c.radd || c.rupd) t.push('名簿 追加' + c.radd + '・更新' + c.rupd);
+  if (c.bad) t.push('読めないもの ' + c.bad);
+  return t.join('、') || '取り込むものがありませんでした';
+}
+function backupText() {
+  return JSON.stringify({
+    format: 'scorebook-backup', version: 1, exportedAt: new Date().toISOString(),
+    roster: { team: roster.team || '', players: roster.players },
+    games: Object.values(games).map(r => ({ game: r.game, events: r.events })),
+  });
+}
+
+// ----- 試合一覧 -----
+function renderList() {
+  const list = Object.values(games).sort((a, b) => (b.game.date || '').localeCompare(a.game.date || '') || (b.upd || 0) - (a.upd || 0));
+  let h = `<div class="page"><h1>試合一覧</h1><button data-a="newgame" class="big primary">+ 新しい試合</button>`;
+  if (!list.length) h += '<p class="note">まだ試合がありません。「+ 新しい試合」から始めます。</p>';
+  list.forEach(r => {
+    const g = r.game, res = gameResult(r), cur = store.game && store.game.id === r.id;
+    h += `<div class="card gcard${cur ? ' cur' : ''}">
+      <div class="gtop"><b>${esc(g.date)}</b> <span class="note">${esc(g.tournament || '')} ${esc(g.type || '')}</span>${r.src === 'import' ? '<i class="bdg run">取り込み</i>' : ''}${cur ? '<i class="bdg">開いている試合</i>' : ''}</div>
+      <div class="gsc"><span class="wl w${res.wl || 'x'}">${res.wl || '記録中'}</span>${esc(g.ourName)} <b>${res.us} - ${res.them}</b> ${esc(g.oppName)}<small>${g.ourSide ? '(後攻)' : '(先攻)'}</small></div>
+      <label class="chk2"><input type="checkbox" class="ginc" data-gi="${r.id}" ${g.includeTotals ? 'checked' : ''}> 通算成績に含める</label>
+      <div class="gbtn"><button data-a="gopen" data-k="${r.id}" class="${cur ? '' : 'primary'}">${res.over ? '見る' : '続きを記録'}</button><button data-a="gexp" data-k="${r.id}">送る・保存</button><button data-a="gdel" data-k="${r.id}">削除</button></div></div>`;
+  });
+  const lb = roster.lastBackup, old = !lb || (Date.now() - new Date(lb + 'T00:00').getTime()) / 86400000 > 31;
+  h += `<div class="card"><h2>試合データの取り込み</h2><p class="note">ほかの端末から届いた試合ファイル(.json)、バックアップ、名簿のファイルを取り込みます。同じ試合は新しいほうを残します(消えることはありません)。</p>
+    <label class="fbtn">ファイルを選んで取り込む<input type="file" id="gfile" accept=".json,application/json,text/plain" multiple></label>
+    <textarea id="gimpt" placeholder="または、文字でコピーしたデータを貼り付け"></textarea><button data-a="gimp" style="width:100%">貼り付けた文字を取り込む</button></div>
+    <div class="card"><h2>全データのバックアップ</h2><p class="note">名簿と全試合(${list.length}試合)を1つのファイルにします。${isAdmin() ? 'Googleドライブの「バックアップ」フォルダに、月1回ほど保存してください。' : ''}復元するときは、上の「取り込み」でこのファイルを読み込みます。</p>
+    <p class="${isAdmin() && list.length && old ? 'err' : 'note'}">最後のバックアップ:${lb ? esc(lb) : 'まだしていません'}</p>
+    <button data-a="bexp" style="width:100%">バックアップを保存する</button></div>
+    <div class="card"><h2>選手名簿</h2><p class="note">自チームの在籍選手 ${activePlayers().length}名(この端末:${isAdmin() ? '管理者用' : '記録用'})。</p><button data-a="roster" style="width:100%">名簿を開く</button></div>
+    <p class="note">データはこの端末のブラウザに保存されます。iPhoneは必ずホーム画面に追加したアプリから使ってください。</p></div>`;
+  return h;
+}
+function modalGexp() {
+  const m = ui.modal, r = games[m.id];
+  if (!r) return '<div class="mb"><button data-a="close">閉じる</button></div>';
+  const g = r.game;
+  return `<h3>試合データを送る・保存</h3><p>${esc(g.date)} ${esc(g.ourName)} 対 ${esc(g.oppName)}</p>
+    <p class="note">「ファイルで送る・保存」を押すと、スマホの共有画面が開きます。${isAdmin() ? 'Googleドライブの「試合データ」フォルダに保存できます。' : 'LINEなどで管理者に送ってください。'}共有画面が出ない端末では、ファイルがダウンロードされます。</p>
+    <button data-a="gshare" class="big primary">ファイルで送る・保存</button>
+    <button data-a="gtext" style="width:100%;margin-top:8px">文字でコピーする(ファイルを送れないとき)</button>
+    ${m.text ? `<textarea id="expt" readonly>${esc(m.text)}</textarea><button data-a="copy" style="width:100%">コピー</button>` : ''}
+    <div class="mb"><button data-a="close">閉じる</button></div>`;
+}
+
+// ----- 通算成績(管理者用の端末だけ) -----
+// 成績の持ち主:名簿のIDがあればID、なければ背番号+名前(古い記録)
+function pidOf(k) { const p = k.split(':'); return p[1] === 'id' ? 'r:' + p[2] : 'n:' + p[1] + ':' + p.slice(2).join(':'); }
+function pname(pid, fallback) {
+  if (pid.startsWith('r:')) { const p = rp(pid.slice(2)); if (p) return { label: rlabel(p), no: p.no, tag: p.left ? '退団' : p.prov ? '仮' : '' }; }
+  const no = (String(fallback || '').match(/^#(\S+)/) || [])[1] || '';
+  return { label: fallback || pid, no, tag: '名簿外' };
+}
+function addInto(dst, src, keys) { keys.forEach(k => { dst[k] = (dst[k] || 0) + (src[k] || 0); }); }
+const BAT_K = ['PA', 'AB', 'H', 'H2', 'H3', 'HR', 'RBI', 'R', 'BB', 'HBP', 'K', 'SB', 'SH', 'SF'];
+const PIT_K = ['P', 'ST', 'BF', 'OUT', 'H', 'HR', 'BB', 'HBP', 'K', 'R', 'ER', 'WP', 'BK'];
+const FLD_K = ['PO', 'A', 'E', 'PB', 'CS', 'SBA'];
+function careerData(year, type) {
+  const recs = Object.values(games).filter(r => r.game.includeTotals && (!year || (r.game.date || '').slice(0, 4) === year) && (!type || r.game.type === type));
+  const bat = {}, pit = {}, fld = {}, apps = {}, team = { G: recs.length, W: 0, L: 0, D: 0, RS: 0, RA: 0, open: 0 }, inn = {};
+  const ent = (map, pid, label) => (map[pid] = map[pid] || { pid, label });
+  recs.forEach(r => {
+    const s = replayRec(r), o = r.game.ourSide, seen = new Set();
+    const res = gameResult(r); team.RS += res.us; team.RA += res.them;
+    if (!res.over) team.open++; else if (res.wl === '勝') team.W++; else if (res.wl === '負') team.L++; else team.D++;
+    inn[r.game.innings] = (inn[r.game.innings] || 0) + 1;
+    Object.entries(s.bat).forEach(([k, v]) => { if (v.side !== o) return; const id = pidOf(k); addInto(ent(bat, id, v.label), v, BAT_K); seen.add(id); });
+    Object.entries(s.pit).forEach(([k, v]) => { if (v.side !== o || !v.P && !v.OUT) return; const id = pidOf(k), e = ent(pit, id, v.label); addInto(e, v, PIT_K); e.APP = (e.APP || 0) + 1; seen.add(id); });
+    Object.entries(s.fld).forEach(([k, v]) => { if (v.side !== o) return; const id = pidOf(k); addInto(ent(fld, id, v.label), v, FLD_K); seen.add(id); });
+    seen.forEach(id => { apps[id] = (apps[id] || 0) + 1; });
+  });
+  const era = Object.entries(inn).sort((a, b) => b[1] - a[1])[0];
+  return { recs, bat, pit, fld, apps, team, eraInn: era ? parseInt(era[0], 10) : 6 };
+}
+function rate(n, d, dig) { if (!d) return '-'; const v = (n / d).toFixed(dig == null ? 3 : dig); return dig == null && v.startsWith('0') ? v.slice(1) : v; }
+function sortedRows(map) {
+  return Object.values(map).map(x => Object.assign(x, pname(x.pid, x.label)))
+    .sort((a, b) => (parseInt(a.no, 10) || 999) - (parseInt(b.no, 10) || 999) || String(a.label).localeCompare(String(b.label)));
+}
+function nameCell(x) { return `<td class="l stick">${esc(x.label)}${x.tag ? `<i class="bdg ${x.tag === '退団' ? 'gray' : 'prov'}">${x.tag}</i>` : ''}</td>`; }
+function renderCareer() {
+  const all = Object.values(games);
+  const years = [...new Set(all.map(r => (r.game.date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+  if (ui.cy == null) ui.cy = years.includes(String(new Date().getFullYear())) ? String(new Date().getFullYear()) : (years[0] || '');
+  const types = [...new Set(all.map(r => r.game.type).filter(Boolean))];
+  const d = careerData(ui.cy, ui.ct || '');
+  const t = d.team;
+  let h = `<div class="page"><h1>通算成績</h1>
+    <div class="row2"><label>年<select data-cf="y"><option value="">すべて</option>${years.map(y => `<option value="${y}" ${ui.cy === y ? 'selected' : ''}>${y}年</option>`).join('')}</select></label>
+    <label>種別<select data-cf="t"><option value="">すべて</option>${types.map(x => `<option ${ui.ct === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></label></div>
+    <div class="card"><b>${t.G}試合</b> ${t.W}勝 ${t.L}敗 ${t.D}分${t.open ? `(記録中 ${t.open})` : ''} 得点 ${t.RS} 失点 ${t.RA}
+    <p class="note">「通算成績に含める」がオンの試合だけを集計します(切り替えは試合一覧で)。名前・背番号は今の名簿で表示します。</p></div>`;
+  if (!d.recs.length) h += '<p class="note">集計する試合がありません。</p>';
+  else {
+    const b = sortedRows(d.bat);
+    h += `<h2>打撃</h2><div class="tw2"><table class="st car"><tr><th class="stick">選手</th><th>試合</th><th>打率</th><th>出塁率</th><th>長打率</th><th>打席</th><th>打数</th><th>安打</th><th>二塁打</th><th>三塁打</th><th>本塁打</th><th>打点</th><th>得点</th><th>四球</th><th>死球</th><th>三振</th><th>犠打</th><th>犠飛</th><th>盗塁</th></tr>` +
+      b.map(x => { const tb = x.H + x.H2 + 2 * x.H3 + 3 * x.HR; return `<tr>${nameCell(x)}<td>${d.apps[x.pid] || 0}</td><td><b>${rate(x.H, x.AB)}</b></td><td>${rate(x.H + x.BB + x.HBP, x.AB + x.BB + x.HBP + x.SF)}</td><td>${rate(tb, x.AB)}</td><td>${x.PA}</td><td>${x.AB}</td><td>${x.H}</td><td>${x.H2}</td><td>${x.H3}</td><td>${x.HR}</td><td>${x.RBI}</td><td>${x.R}</td><td>${x.BB}</td><td>${x.HBP}</td><td>${x.K}</td><td>${x.SH}</td><td>${x.SF}</td><td>${x.SB}</td></tr>`; }).join('') + '</table></div>';
+    const p = sortedRows(d.pit);
+    if (p.length) h += `<h2>投手</h2><div class="tw2"><table class="st car"><tr><th class="stick">投手</th><th>登板</th><th>防御率</th><th>投球回</th><th>球数</th><th>打者</th><th>被安打</th><th>被本塁打</th><th>奪三振</th><th>四球</th><th>死球</th><th>失点</th><th>自責点</th><th>暴投</th><th>S率</th></tr>` +
+      p.map(x => `<tr>${nameCell(x)}<td>${x.APP}</td><td><b>${x.OUT ? (x.ER * d.eraInn / (x.OUT / 3)).toFixed(2) : '-'}</b></td><td>${ipText(x.OUT)}</td><td>${x.P}</td><td>${x.BF}</td><td>${x.H}</td><td>${x.HR}</td><td>${x.K}</td><td>${x.BB}</td><td>${x.HBP}</td><td>${x.R}</td><td>${x.ER}</td><td>${x.WP}</td><td>${x.P ? Math.round(x.ST / x.P * 100) + '%' : '-'}</td></tr>`).join('') + `</table></div><p class="note">防御率は${d.eraInn}回あたりの自責点(集計した試合で最も多いイニング数)。</p>`;
+    const f = sortedRows(d.fld).filter(x => x.PO + x.A + x.E + x.PB + x.CS + x.SBA > 0);
+    if (f.length) h += `<h2>守備</h2><div class="tw2"><table class="st car"><tr><th class="stick">選手</th><th>守備率</th><th>刺殺</th><th>補殺</th><th>失策</th><th>捕逸</th><th>盗塁阻止</th></tr>` +
+      f.map(x => `<tr>${nameCell(x)}<td><b>${rate(x.PO + x.A, x.PO + x.A + x.E)}</b></td><td>${x.PO}</td><td>${x.A}</td><td>${x.E}</td><td>${x.PB || ''}</td><td>${x.CS + x.SBA ? x.CS + '/' + (x.CS + x.SBA) : ''}</td></tr>`).join('') + '</table></div>';
+  }
+  return h + renderWeekly() + '</div>';
+}
+// ----- 投手の週間球数(通算に含めない試合も数える) -----
+function dayDiff(a, b) { return Math.round((new Date(b + 'T00:00') - new Date(a + 'T00:00')) / 86400000); }
+function pitchLog() {
+  const log = {};
+  Object.values(games).forEach(r => {
+    const s = replayRec(r), o = r.game.ourSide;
+    Object.entries(s.pit).forEach(([k, v]) => {
+      if (v.side !== o || !v.P) return;
+      const id = pidOf(k);
+      (log[id] = log[id] || []).push({ date: r.game.date, P: v.P, grade: v.grade, label: v.label, lim: r.game.limits || {} });
+    });
+  });
+  return log;
+}
+function weekLimit(entries) {
+  const last = entries.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] || {};
+  const g = parseInt(last.grade, 10), lim = last.lim || {};
+  return (g && g <= 4) ? (lim.weekLower || 180) : (lim.weekUpper || 210);
+}
+// pid の投手の、base の日を含む直近7日の球数
+function weekTotal(log, pid, base) { return (log[pid] || []).filter(e => e.date && dayDiff(e.date, base) >= 0 && dayDiff(e.date, base) < 7).reduce((a, e) => a + e.P, 0); }
+function renderWeekly() {
+  const base = ui.wkd || todayStr(), log = pitchLog();
+  const rows = Object.keys(log).map(pid => {
+    const es = log[pid].filter(e => e.date && dayDiff(e.date, base) >= 0 && dayDiff(e.date, base) < 7).sort((a, b) => a.date.localeCompare(b.date));
+    return Object.assign({ pid, es, sum: es.reduce((a, e) => a + e.P, 0), lim: weekLimit(log[pid]) }, pname(pid, log[pid][0].label));
+  }).filter(x => x.es.length).sort((a, b) => b.sum - a.sum);
+  let h = `<h2 style="margin-top:18px">投手の週間球数</h2><label>基準の日<input type="date" id="wkd" value="${base}"></label>
+    <p class="note">基準の日を含む直近7日間の合計です。通算に含めない試合も数えます。上限は学年で判定(4年以下180球、5年以上210球。試合設定で変更可)。</p>`;
+  if (!rows.length) return h + '<p class="note">この7日間に投げた投手はいません。</p>';
+  return h + rows.map(x => {
+    const cls = x.sum >= x.lim ? 'over' : x.sum >= x.lim - 30 ? 'warn' : '';
+    return `<div class="pit ${cls}" style="margin:6px 0"><span>${esc(x.label)}</span><span class="pc">${x.sum}<small>球 / ${x.lim}</small></span>
+      <div class="pmsg">${x.es.map(e => `${e.date.slice(5).replace('-', '/')} ${e.P}球`).join('、')}${cls === 'over' ? ' <b>週の上限に達しています</b>' : cls === 'warn' ? ` <b>上限まであと${x.lim - x.sum}球</b>` : ''}</div></div>`;
+  }).join('');
 }
 
 // ---------- 確認ダイアログ ----------
@@ -1912,17 +2192,23 @@ function modalConfirm() {
 function render() {
   const app = document.getElementById('app');
   const tabs = document.getElementById('tabs');
-  if (!store.game) { if (document.getElementById('setup')) renderOurCard(); else app.innerHTML = renderSetup(); tabs.classList.add('hidden'); }
+  if (ui.view === 'setup') { if (document.getElementById('setup')) renderOurCard(); else app.innerHTML = renderSetup(); tabs.classList.add('hidden'); }
   else {
+    // 試合を開いていなければ一覧へ。通算は管理者用の端末だけ
+    if (!store.game && ['rec', 'log', 'stats'].includes(ui.tab)) ui.tab = 'list';
+    if (ui.tab === 'career' && !isAdmin()) ui.tab = 'list';
     tabs.classList.remove('hidden');
-    app.innerHTML = ui.tab === 'rec' ? renderRec() : ui.tab === 'log' ? renderLog() : ui.tab === 'stats' ? renderStats() : renderData();
-    tabs.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.k === ui.tab));
+    app.innerHTML = ui.tab === 'rec' ? renderRec() : ui.tab === 'log' ? renderLog() : ui.tab === 'stats' ? renderStats() : ui.tab === 'career' ? renderCareer() : renderList();
+    tabs.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('on', b.dataset.k === ui.tab);
+      b.classList.toggle('hidden', (['rec', 'log', 'stats'].includes(b.dataset.k) && !store.game) || (b.dataset.k === 'career' && !isAdmin()));
+    });
   }
   const md = document.getElementById('modal');
   if (ui.modal) {
     md.classList.remove('hidden');
     const k = ui.modal.kind;
-    document.getElementById('sheet').innerHTML = k === 'padetail' ? modalPaDetail() : k === 'play' ? modalPlay() : k === 'run' ? modalRun() : k === 'sub' ? modalSub() : k === 'pick' ? modalPick() : k === 'roster' ? modalRoster() : modalConfirm();
+    document.getElementById('sheet').innerHTML = k === 'padetail' ? modalPaDetail() : k === 'play' ? modalPlay() : k === 'run' ? modalRun() : k === 'sub' ? modalSub() : k === 'pick' ? modalPick() : k === 'roster' ? modalRoster() : k === 'gexp' ? modalGexp() : modalConfirm();
   } else md.classList.add('hidden');
   const t = document.getElementById('toast');
   t.textContent = ui.toast; t.classList.toggle('hidden', !ui.toast);
@@ -2131,28 +2417,60 @@ document.addEventListener('click', e => {
       return render();
     case 'cfm': { const f = m.onok; ui.modal = null; f(parseInt(k, 10)); return render(); }
     case 'close': ui.modal = null; return render();
-    case 'exp': ui.exp = JSON.stringify({ format: 'scorebook', version: 1, game: store.game, events: store.events }); return render();
     case 'copy': {
       const ta = document.getElementById('expt');
-      try { navigator.clipboard.writeText(ta.value).then(() => toast('コピーしました'), () => { ta.select(); toast('選択しました。長押しでコピーしてください'); }); }
-      catch (err) { ta.select(); toast('選択しました。長押しでコピーしてください'); }
+      try { navigator.clipboard.writeText(ta.value).then(() => toastOnly('コピーしました'), () => { ta.select(); toastOnly('選択しました。長押しでコピーしてください'); }); }
+      catch (err) { ta.select(); toastOnly('選択しました。長押しでコピーしてください'); }
       return;
     }
-    case 'imp': {
-      try {
-        const d = JSON.parse(document.getElementById('impt').value);
-        if (d.format !== 'scorebook' || !d.game || !Array.isArray(d.events)) throw new Error();
-        store = { game: d.game, events: d.events }; save(); recompute(); ui.tab = 'rec'; toast('読み込みました');
-      } catch (err) { toast('読み込めませんでした。データを確認してください'); }
+    case 'newgame': ui.view = 'setup'; ui.draft = null; render(); window.scrollTo(0, 0); return;
+    case 'tolist': ui.view = null; ui.tab = 'list'; render(); window.scrollTo(0, 0); return;
+    case 'gopen': openGame(k); ui.tab = 'rec'; render(); window.scrollTo(0, 0); return;
+    case 'gexp': ui.modal = { kind: 'gexp', id: k }; return render();
+    case 'gtext': m.text = gameFileText(games[m.id]); return render();
+    case 'gshare': {
+      const r = games[m.id];
+      shareOrDownload(gameFileName(r.game), gameFileText(r)).then(res => { if (res === 'download') toastOnly('ファイルを保存しました'); else if (res === 'fail') toastOnly('送れませんでした。「文字でコピー」を使ってください'); });
       return;
     }
-    case 'newg':
-      ui.modal = { kind: 'confirm', title: '今の試合を消しますか?', text: '必要なら先にデータを書き出してください。', onok: () => { store = { game: null, events: [] }; ui.draft = null; save(); recompute(); ui.tab = 'rec'; } };
+    case 'gdel': {
+      const r = games[k], res = gameResult(r);
+      ui.modal = { kind: 'confirm', title: 'この試合を削除しますか?', text: r.game.date + ' 対 ' + r.game.oppName + '(' + (res.over ? res.us + '-' + res.them : '記録中') + ')。元に戻せません。' + (r.src === 'local' && !isAdmin() ? '管理者に送ったか確かめてください。' : ''),
+        onok: () => { if (store.game && store.game.id === k) { store = { game: null, events: [] }; lsSet(CKEY, ''); recompute(); } removeGame(k); toastOnly('削除しました'); } };
       return render();
+    }
+    case 'gimp': {
+      const txt = document.getElementById('gimpt').value.trim(); if (!txt) return toastOnly('貼り付けてから押してください');
+      const c = newCnt();
+      try { importText(txt, c); } catch (err) { c.bad++; }
+      render(); toastOnly(cntText(c)); return;
+    }
+    case 'bexp': {
+      shareOrDownload('スコアブック_バックアップ_' + todayStr() + '.json', backupText()).then(res => {
+        if (res === 'share' || res === 'download') { roster.lastBackup = todayStr(); saveRoster(); render(); toastOnly('バックアップを保存しました'); }
+        else if (res === 'fail') toastOnly('保存できませんでした');
+      });
+      return;
+    }
   }
 });
 document.addEventListener('change', e => {
-  const t = e.target; if (!t.classList || !t.classList.contains('dpos')) return;
+  const t = e.target;
+  if (t.classList && t.classList.contains('ginc')) { // 通算成績に含める
+    const r = games[t.dataset.gi]; if (!r) return;
+    r.game.includeTotals = t.checked; r.game.metaAt = Date.now(); putGame(r);
+    if (store.game && store.game.id === r.id) save();
+    return;
+  }
+  if (t.dataset && t.dataset.cf) { if (t.dataset.cf === 'y') ui.cy = t.value; else ui.ct = t.value; return render(); }
+  if (t.id === 'wkd') { ui.wkd = t.value || null; return render(); }
+  if (t.name === 'type' && t.closest('#setup')) { const f = document.getElementById('setup'); f.elements.include.checked = t.value !== 'その他'; return; }
+  if (t.id === 'gfile') { // 試合ファイルなどを取り込む(複数可)
+    const files = [...t.files], c = newCnt();
+    Promise.all(files.map(f => f.text().then(txt => { try { importText(txt, c); } catch (err) { c.bad++; } }))).then(() => { render(); toastOnly(cntText(c)); });
+    return;
+  }
+  if (!t.classList || !t.classList.contains('dpos')) return;
   const d = ui.draft, i = parseInt(t.dataset.i, 10), old = d.order[i].pos, j = d.order.findIndex((o, x) => x !== i && o.pos === t.value);
   if (j >= 0) d.order[j].pos = old;
   d.order[i].pos = t.value; renderOurCard();
@@ -2160,7 +2478,9 @@ document.addEventListener('change', e => {
 document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') { ui.modal = null; render(); } });
 setInterval(() => { const el = document.getElementById('timer'); if (el) el.textContent = elapsedText(); }, 1000);
 
-load(); loadRoster(); recompute(); render();
+// 起動:名簿と全試合を読み込んでから表示する
+loadRoster();
+loadGames().catch(() => { }).then(() => { recompute(); if (!store.game) ui.tab = 'list'; render(); });
 
 </script>
 </body>
