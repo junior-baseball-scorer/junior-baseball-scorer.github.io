@@ -1224,6 +1224,9 @@ function modalRoster() {
       ${m.rows.map((p, i) => p.left ? '' : `<tr><td><input class="num rno" data-i="${i}" value="${esc(p.no)}" inputmode="numeric"></td><td><input class="rnm" data-i="${i}" value="${esc(p.name)}" placeholder="名前"></td><td><select class="rgr" data-i="${i}">${gradeOptions(p.grade || 5)}</select></td>
         <td>${p.id ? `<button data-a="rleave" data-k="${i}" class="mini">退団</button>` : `<button data-a="rdel" data-k="${i}" class="mini">×</button>`}</td></tr>${p.prov ? `<tr><td></td><td colspan="3" class="note">↑ 記録用の端末で仮登録された選手</td></tr>` : ''}`).join('')}</table>
       <button data-a="radd" style="width:100%;margin-top:6px">+ 選手を追加(入団)</button>
+      <div class="subform"><div class="gt">表からまとめて追加(エクセルやスプレッドシートの「背番号・名前・学年」の列をコピーして貼り付け。1行に1人)</div>
+      <textarea id="rpaste" placeholder="例)&#10;1	山田 太郎	6&#10;2	佐藤 花子	5"></textarea><button data-a="rpaste" style="width:100%">貼り付けた選手を追加</button>
+      ${m.info ? `<p class="note" style="color:var(--pri);font-weight:700">${esc(m.info)}</p>` : ''}</div>
       <p class="note">在籍 ${act.length}名。背番号はシーズン途中で変えても、同じ選手として記録がつながります。</p>`;
     if (left.length) h += `<div class="gt" style="margin-top:8px">退団した選手(記録は残ります)</div>${m.rows.map((p, i) => p.left ? `<div class="lrowx">#${esc(p.no)} ${esc(p.name)}<small>${esc(p.left)} 退団</small><button data-a="rback" data-k="${i}" class="mini">在籍に戻す</button></div>` : '').join('')}`;
   } else {
@@ -1236,6 +1239,23 @@ function modalRoster() {
     <p class="err">${esc(m.err || '')}</p>
     <div class="mb"><button data-a="close">${admin ? 'やめる' : '閉じる'}</button>${admin ? '<button data-a="rsave" class="primary">保存</button>' : ''}</div>`;
   return h;
+}
+// 表の貼り付けを読む:タブ・カンマ区切り、または空白区切り(先頭が背番号、最後が学年)。全角数字・「年」も可
+function parseRosterPaste(text, usedNos) {
+  const z2h = t => String(t || '').replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[　]/g, ' ').trim();
+  const used = new Set(usedNos), add = [], err = [];
+  String(text || '').split(/\r?\n/).forEach((line, i) => {
+    let c = z2h(line).split(/\t|,|、/).map(x => x.trim()).filter(Boolean);
+    if (!c.length) return;
+    if (c.length === 1) { const w = c[0].split(/\s+/); c = [w[0]]; if (w.length > 2 && /^[1-6]年?$/.test(w[w.length - 1])) c.push(w.slice(1, -1).join(' '), w[w.length - 1]); else c.push(w.slice(1).join(' ')); }
+    const no = (c[0] || '').replace(/^#/, ''), name = c[1] || '', gm = /^([1-6])年?$/.exec(c[2] || '');
+    if (!/^\d{1,3}$/.test(no)) { if (i === 0 && /背番号|番号|No/i.test(line)) return; err.push((i + 1) + '行目:背番号が読めません'); return; } // 見出しの行は飛ばす
+    if (used.has(no)) { err.push('#' + no + ' は名簿にいるため追加しませんでした'); return; }
+    used.add(no);
+    add.push({ no, name, grade: gm ? gm[1] : '5' });
+    if (c[2] && !gm) err.push('#' + no + ' の学年が読めないため5年にしました');
+  });
+  return { add, err };
 }
 function collectRoster(m) {
   const sh = document.getElementById('sheet');
@@ -2220,6 +2240,14 @@ document.addEventListener('click', e => {
   switch (a) {
     case 'start': return startGame();
     case 'roster': ui.modal = { kind: 'roster', rows: roster.players.map(p => Object.assign({}, p)) }; if (!ui.modal.rows.length && isAdmin()) ui.modal.rows = Array.from({ length: 5 }, () => ({ no: '', name: '', grade: '5' })); return render();
+    case 'rpaste': {
+      collectRoster(m);
+      const r = parseRosterPaste(document.getElementById('rpaste').value, m.rows.filter(x => !x.left && (x.no || x.name)).map(x => x.no));
+      m.rows = m.rows.filter(x => x.id || x.no || x.name).concat(r.add);
+      m.err = r.err.length ? r.err.slice(0, 5).join(' / ') + (r.err.length > 5 ? ' ほか' + (r.err.length - 5) + '件' : '') : '';
+      m.info = r.add.length ? r.add.length + '名を追加しました。内容を確かめて「保存」を押すと確定します。' : '';
+      return render();
+    }
     case 'radd': collectRoster(m); m.rows.push({ no: '', name: '', grade: '5' }); render(); { const r = document.querySelectorAll('#sheet .rno'); r[r.length - 1].focus(); } return;
     case 'rdel': collectRoster(m); m.rows.splice(parseInt(k, 10), 1); m.err = ''; return render();
     case 'rleave': collectRoster(m); m.rows[parseInt(k, 10)].left = todayStr(); m.err = ''; return render();
