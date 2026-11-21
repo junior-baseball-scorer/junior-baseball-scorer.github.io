@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>少年野球スコアブック(試作版 v0.8.0)</title>
-<meta name="app-version" content="0.8.0">
+<title>少年野球スコアブック(試作版 v0.9.0)</title>
+<meta name="app-version" content="0.9.0">
 <style>
 :root{--bg:#f4f6f3;--bg2:#fff;--ink:#1d2a22;--sub:#5f6f65;--line:#c9d3cc;--pri:#1f6f43;--run:#e8902a;--ball:#2f8f4f;--str:#d6a400;--out:#c8443a;--card:#fff}
 *{box-sizing:border-box}
@@ -12,6 +12,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-syst
 body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(70px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
 button{font:inherit;color:inherit;border:1px solid var(--line);background:var(--bg2);border-radius:10px;padding:10px 8px;cursor:pointer;touch-action:manipulation}
 button:active{transform:scale(.97)}
+button:active:not(:disabled),[data-a]:active{filter:brightness(.9)} /* 押したことが見て分かるように(iPhone で振動しないときも) */
 button:disabled{opacity:.4}
 button.primary{background:var(--pri);color:#fff;border-color:var(--pri)}
 button.danger{background:var(--out);color:#fff;border-color:var(--out)}
@@ -108,7 +109,7 @@ table.sb td.r{font-weight:800;color:#ffd76a}
 .rb{padding:5px 2px;font-size:15px;font-weight:800;line-height:1.1;min-height:46px;border-width:1.5px}
 .rb small{display:block;font-size:9.5px;font-weight:400;margin-top:1px;opacity:.85}
 .rb:disabled{opacity:.25}
-.c-hit{background:#e6f3e9;border-color:#2f8f4f;color:#1f6f43}.c-hit.k1{background:#2f7d45;color:#fff}
+.c-hit{background:#e6f3e9;border-color:#2f8f4f;color:#1f6f43}
 .c-out{background:#fdeceb;border-color:#c8443a;color:#a8322a}
 .c-sac{background:#eaf1fb;border-color:#5b8bd0;color:#1f5fbf}
 .c-run{background:#fff1e0;border-color:#e8902a;color:#9a5300}
@@ -217,6 +218,7 @@ button.mini{padding:4px 10px;font-size:12px}
 .reasons{margin-bottom:6px}.g.bt{margin-bottom:12px}
 .sheet .gt{font-size:12px;color:var(--sub);margin:4px 0}
 .seg2{display:flex;gap:6px;margin-bottom:8px}.seg2 button{flex:1;font-size:14px}
+.seg3{display:flex;gap:6px;margin:2px 0 6px}.seg3 button{flex:1;font-size:16px;font-weight:700;min-height:48px}.seg3 small{display:block;font-size:11px;font-weight:400}
 .slots{display:grid;grid-template-columns:1fr;gap:4px}
 .slots button{text-align:left;padding:8px 10px;font-size:15px}
 .slots span{display:inline-block;width:22px;color:var(--sub)}
@@ -310,6 +312,7 @@ table.book tr.sumr td.lu{font-size:13px;color:var(--sub)}
 table.book tr.sumr td.rr2{font-weight:800;color:var(--out)}
 .legend{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--sub);margin:8px 0;line-height:1.6}
 .legend i{font-style:normal;font-weight:800}.legend i.r{color:#d0342c}.legend i.bl{color:#1f5fbf}
+.legend>div>b{display:inline-block;min-width:4.5em;margin-right:8px;color:var(--ink,#1d2a22)}.legend .lgi{display:inline-block;margin-right:10px;white-space:nowrap}.legend .lgi i{margin-right:3px;color:#1d2a22}.legend .lgi i.r{color:#d0342c}.legend .lgi i.bl{color:#1f5fbf}.legend .lgi i.rm{font-family:'Times New Roman',Times,'Noto Serif',serif}
 .legend .lg{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle}
 .lg.b{background:var(--ball)}.lg.c{border:1.5px solid #b08800;box-sizing:border-box}.lg.s{background:#b08800}
 .lgo{color:var(--out);border:1px solid var(--out);border-radius:50%;padding:0 3px;font-size:9px;margin-right:3px}
@@ -378,7 +381,7 @@ button.chip .mks{display:block;line-height:1;margin-top:2px}
 <script>
 // ===== アプリの版(セマンティック バージョニング:0.y.z は試作の段階。機能を足した・変えたら y、直しだけなら z を上げる) =====
 // 画面(一覧の下)・書き出したファイル(appVersion)・ブラウザのコンソールに同じ値を出す。変更内容は CHANGELOG.md
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.9.0';
 // ===== 記録エンジン:出来事の記録(events)から試合の状況と成績を計算する =====
 const POS = { '1': '投', '2': '捕', '3': '一', '4': '二', '5': '三', '6': '遊', '7': '左', '8': '中', '9': '右' };
 const POS_FULL = { '1': '投手', '2': '捕手', '3': '一塁', '4': '二塁', '5': '三塁', '6': '遊撃', '7': '左翼', '8': '中堅', '9': '右翼' };
@@ -563,7 +566,7 @@ function applyMoves(s, moves, batterRef, pitcher, opt) {
       runs++; scorers.push(ref);
       if (s.bat[ref.key]) s.bat[ref.key].R++;
       // 失点はその走者を出塁させた投手に付ける
-      const earned = ref.er !== false && !opt.unearned && s.vouts < 3;
+      const earned = ref.er !== false && !opt.unearned && !(opt.unearnedB && mv.from === 'B') && s.vouts < 3;
       if (meta) meta.earned = earned;
       const resp = s.pit[ref.pk] || (pitcher ? pitStat(s, pitcher.side, pitcher.p) : null);
       if (resp) { resp.R++; if (earned) resp.ER++; }
@@ -594,10 +597,12 @@ function endPA(s, game, result, moves, fielders, ev) {
   const dropE = ev.drop && ev.drop.safe && ev.drop.cause === 'E'; // 振り逃げで捕手・一塁手などの送球の失策
   // 失策・打撃妨害・捕逸や送球の失策による振り逃げで出塁した走者の得点は自責点にならない
   const reachedByError = result === 'E' || result === 'CI' || dropPB || dropE;
-  // スコアブックの塁の欄に書く進塁の理由:打球で進んだら打順をかっこで (3)。振り逃げのあいだの進塁は WP(3)・PB(3)・E2(3)
+  // スコアブックの塁の欄に書く進塁の理由:打球で進んだら打順をかっこで (3)。振り逃げのあいだの進塁は WP(3)・PB(3)・2E(3)
   const n = String(b.slot + 1);
   let cause = '(' + n + ')';
-  if (ev.drop && ev.drop.safe) cause = ({ WP: 'WP', PB: 'PB' }[ev.drop.cause] || ('E' + ((ev.drop.err && ev.drop.err.f) || ''))) + '(' + n + ')';
+  if (ev.drop && ev.drop.safe) cause = ({ WP: 'WP', PB: 'PB' }[ev.drop.cause] || dropErrLab(ev.drop.err)) + '(' + n + ')';
+  // 安打の打者走者が失策でさらに進んだ(No.50):失策した野手それぞれに失策。打者走者がこのプレーで生還したら自責点にしない
+  const bxe = ev.bxe && ev.bxe.errs && ev.bxe.errs.length ? ev.bxe : null;
   const paId = s.paMeta.length;
   s.paMeta.push({ path: [], out: null, scored: false });
   const batterRef = {
@@ -614,7 +619,7 @@ function endPA(s, game, result, moves, fielders, ev) {
     else if (ev.rf && ev.rf.length) outLabels[mv.from] = ev.rf.join('-');
   }
   const res = applyMoves(s, moves, batterRef, pit, {
-    unearned: result === 'E' || dropPB || dropE, extraVout, cause, outLabels, play: 'i' + s.curIdx,
+    unearned: result === 'E' || dropPB || dropE, unearnedB: !!bxe, extraVout, cause, outLabels, play: 'i' + s.curIdx,
     rbi: !(result === 'E' || result === 'DP' || ev.drop),
   });
   bst.PA++; bst.AB += r.ab;
@@ -635,6 +640,7 @@ function endPA(s, game, result, moves, fielders, ev) {
     if (st) st.E++;
   }
   if (dropPB) { const c = fldStat(s, fs, '2'); if (c) c.PB++; }
+  if (bxe) bxe.errs.forEach(e => { s.errors[fs]++; const st = e.f ? fldStat(s, fs, e.f) : null; if (st) st.E++; });
   if (dropE) {
     s.errors[fs]++;
     const ef = ev.drop.err && ev.drop.err.f, st = ef ? fldStat(s, fs, ef) : null;
@@ -662,7 +668,7 @@ function endPA(s, game, result, moves, fielders, ev) {
   }
   s.log.push({
     type: 'pa', id: paId, inning: s.inning, half: s.half, side: bs, slot: b.slot, hk: ev.hk || '',
-    err: ev.err || null, bt: ev.bt || '', foul: !!ev.foul, drop: ev.drop || null, rf: ev.rf || null, bx: ev.bx == null ? null : ev.bx, bxf: ev.bxf || null, loc: ev.loc || '', hrk: ev.hrk || '', b3: !!ev.b3, later: !!ev.later, idx: s.curIdx,
+    err: ev.err || null, bt: ev.bt || '', foul: !!ev.foul, drop: ev.drop || null, rf: ev.rf || null, bx: ev.bx == null ? null : ev.bx, bxf: ev.bxf || null, bxe: ev.bxe || null, loc: ev.loc || '', hrk: ev.hrk || '', b3: !!ev.b3, later: !!ev.later, idx: s.curIdx,
     batter: plabel(b.p), pitcher: pit ? plabel(pit.p) : '', pitches: pa ? pa.pitches.slice() : [],
     result, text: resultText(result, fielders, ev) + (ev.later ? '【あとで入力】' : ''), fielders: fielders || [], runs: res.runs, er: res.er, rbi, outsAfter: s.outs,
     scorers: res.scorers.map(x => x.label),
@@ -682,6 +688,32 @@ function pickoffErrLabel(e) {
   let i = e.kind === 'catch' ? path.lastIndexOf(e.f) : path.indexOf(e.f);
   return 'ケ' + path.map((f, j) => f + (j === i ? 'E' : '')).join('-');
 }
+// 失策の書き方(No.50・51、日本の一般的な書き方に統一):ボールの経路の順に野手の番号を「-」でつなぎ、失策した野手の番号のすぐ後ろに E。
+// 送球の失策は送球した野手に E(6E-3)、捕球の失策は受けた野手に E(5-3E)、後逸・トンネルは 7E。種類がないときは、経路の最後の野手なら捕球、それ以外は送球
+function errLab(path, f, kind) {
+  const p = (path || []).filter(Boolean);
+  if (!f) return p.length ? p.join('-') + 'E' : 'E';
+  if (!p.includes(f)) return f + 'E';
+  const k = kind || (p[p.length - 1] === f ? 'catch' : 'throw');
+  const i = k === 'catch' ? p.lastIndexOf(f) : p.indexOf(f);
+  return p.map((x, j) => x + (j === i ? 'E' : '')).join('-');
+}
+// 失策が2つ以上(例 8-6E-2E):経路の中で、それぞれの失策した野手に E
+function errLabMulti(path, errs) {
+  const p = (path || []).filter(Boolean), marks = new Set();
+  let from = 0;
+  (errs || []).forEach(e => {
+    if (!e || !e.f) return;
+    const k = e.kind || (p.lastIndexOf(e.f) === p.length - 1 ? 'catch' : 'throw');
+    let i = k === 'catch' ? p.indexOf(e.f, from) : p.indexOf(e.f, from);
+    if (i < 0) i = p.indexOf(e.f);
+    if (i >= 0) { marks.add(i); from = i + 1; }
+  });
+  if (!p.length) return (errs || []).map(e => (e.f || '') + 'E').join('-');
+  return p.map((x, j) => x + (marks.has(j) ? 'E' : '')).join('-');
+}
+function bxeLab(b) { return b.errs.length > 1 ? errLabMulti(b.path, b.errs) : errLab(b.path, b.errs[0].f, b.errs[0].kind); }
+function dropErrLab(e) { return e && e.f ? errLab(e.path, e.f, e.kind) : 'E'; }
 // 振り逃げの送球の失策:例「送球の失策 2-3 捕手の悪送球」
 function dropErrText(e) {
   if (!e || !e.f) return '送球の失策';
@@ -725,7 +757,7 @@ function resultText(result, fielders, ev) {
     default: t = RESULTS[result].label;
   }
   if (ev.bx && result === 'GO') t += '、打者は' + (ev.bx === 4 ? '生還' : ev.bx + '塁へ') + '(走者アウトの間に)';
-  else if (ev.bx) t += '、打者走者' + (ev.bx === 'out' ? '走塁死' : ev.bx === 4 ? '生還' : ev.bx + '塁へ') + (ev.bxf && ev.bxf.length && ev.bx !== 'out' ? '(送球の間 Fc' + ev.bxf.join('-') + ')' : '');
+  else if (ev.bx) t += '、打者走者' + (ev.bx === 'out' ? '走塁死' : ev.bx === 4 ? '生還' : ev.bx + '塁へ') + (ev.bxe && ev.bxe.errs && ev.bxe.errs.length && ev.bx !== 'out' ? '(' + ev.bxe.errs.map(e => e.f ? FIELDER_NAME[e.f] + 'の' + (e.kind === 'throw' ? '悪送球' : e.kind === 'catch' ? (ev.bxe.path && ev.bxe.path.length > 1 ? '捕球エラー' : '後逸') : '失策') : '失策').join('・') + ' ' + bxeLab(ev.bxe) + ')' : ev.bxf && ev.bxf.length && ev.bx !== 'out' ? '(送球の間 Fc' + ev.bxf.join('-') + ')' : '');
   if (ev.rf && ev.rf.length) t += '[走者アウト ' + ev.rf.join('-') + ']';
   return t;
 }
@@ -831,9 +863,9 @@ function applyEvent(s, ev, game) {
     if (ev.reason === 'E' || ev.reason === 'POE') s.errors[fs]++; // 野手が「あとで入力」でもチームの失策には数える
     if (errF) { const st = fldStat(s, fs, errF); if (st) st.E++; }
     // 捕逸・失策で入った得点は自責点にならない(簡易判定)
-    // スコアブックの塁の欄:理由の記号に、そのとき打席にいた打者の打順を添える(例 S(3) WP(3) PB(3) E5(3))
+    // スコアブックの塁の欄:理由の記号に、そのとき打席にいた打者の打順を添える(例 S(3) WP(3) PB(3) 2-5E(3))
     const bn = '(' + (currentBatter(s).slot + 1) + ')';
-    const CAUSE = { SB: 'S', WP: 'WP', PB: 'PB', BK: 'Bk', CS: '', PO: '', RO: '', OT: '', E: ev.err && ev.err.lab ? ev.err.lab : 'E' + (errF || ''), POE: pickoffErrLabel(ev.err), OB: 'Ob' };
+    const CAUSE = { SB: 'S', WP: 'WP', PB: 'PB', BK: 'Bk', CS: '', PO: '', RO: '', OT: '', E: ev.err && ev.err.f ? errLab(ev.err.path, ev.err.f, ev.err.kind) : 'E', POE: pickoffErrLabel(ev.err), OB: 'Ob' };
     const cause = ['CS', 'PO', 'RO'].includes(ev.reason) ? '' : CAUSE[ev.reason] + bn;
     const outLabels = {};
     // 走者アウトの守備番号:盗塁死は CS 2-6、牽制死は ケ1-3(3)(打順を添える。捕手からの牽制も ケ2-5(3))
@@ -900,7 +932,7 @@ function pitchLimitFor(game, p) {
   return (g && g <= 4) ? game.limits.lower : game.limits.upper;
 }
 
-if (typeof module !== 'undefined') module.exports = { APP_VERSION, pickoffErrLabel, dropErrText, hitPlace, FIELDER_NAME, ident, dropEligible, dropMoves, BT, ERR_KIND, resultText, POS, RESULTS, RUN_REASONS, PITCH_LABEL, replay, initState, applyEvent, defaultMoves, walkMoves, currentBatter, currentPitcher, pkey, plabel, total, ipText, pitchLimitFor };
+if (typeof module !== 'undefined') module.exports = { APP_VERSION, errLab, errLabMulti, bxeLab, pickoffErrLabel, dropErrText, hitPlace, FIELDER_NAME, ident, dropEligible, dropMoves, BT, ERR_KIND, resultText, POS, RESULTS, RUN_REASONS, PITCH_LABEL, replay, initState, applyEvent, defaultMoves, walkMoves, currentBatter, currentPitcher, pkey, plabel, total, ipText, pitchLimitFor };
 
 </script>
 <script>
@@ -914,7 +946,7 @@ function batterNote(l) {
   const seq = f.join('-');
   switch (l.result) {
     case 'H1': case 'H2': case 'H3': case 'HR': {
-      if (l.result === 'H1' && l.hk === 'BU') return { t: 'BH', c: 'hit' };
+      if (l.result === 'H1' && l.hk === 'BU') return { t: p ? 'BH' + digFW(p) : 'BH', c: 'hit' }; // バント安打:ＢＨ＋転がった方向の守備位置(全角)(No.47)
       // 外野の位置:番号のまわりの点(上=頭上を越えた、左右=線際、2つの番号の間=左中間・右中間)
       if (l.loc === '78' || l.loc === '89') return { t: l.loc, c: 'hit', d: 'gap' };
       if (l.loc === 'over') return { t: p, c: 'hit', d: 'over' };
@@ -956,10 +988,12 @@ function batterNote(l) {
 const BOOK_SIZES = { s: [86, 78], l: [104, 96] };
 let BOOK_SIZE = 'l';
 const PW = 16; // 投球欄の幅
+const DIA_R = 32; // ダイヤモンドの中心から角まで
 let CW, CH, BXY, QXY, QW;
 function setBookGeom(k) {
   BOOK_SIZE = k; [CW, CH] = BOOK_SIZES[k];
-  const cx = PW + (CW - PW) / 2, cy = CH / 2, r = Math.min((CW - PW) / 2, CH / 2) - 2;
+  // ダイヤモンドは全部のマスで同じ大きさ(No.42)。四隅の文字が線にかからないよう、中心から角まで 32px(前は 42px)
+  const cx = PW + (CW - PW) / 2, cy = CH / 2, r = DIA_R;
   BXY = [[cx, cy + r], [cx + r, cy], [cx, cy - r], [cx - r, cy]];              // 本塁・一・二・三の角
   const qx1 = PW + (CW - PW) * 0.27, qx2 = PW + (CW - PW) * 0.73, qy1 = CH * 0.15, qy2 = CH * 0.85;
   QXY = [[qx1, qy2], [qx2, qy2], [qx2, qy1], [qx1, qy1]];                    // 本塁・一塁・二塁・三塁の欄(四隅)
@@ -970,38 +1004,82 @@ const COLOR = { hit: '#d0342c', bb: '#1f5fbf', '': '#1d2a22' };
 const MIN_FS = 12; // スコアブックの中のいちばん小さい文字
 // 文字の幅(px):半角は約0.62、全角は1
 function txtPx(t, fs) { let w = 0; for (const c of String(t)) w += /[\x20-\x7e]/.test(c) ? 0.62 : 1; return w * fs; }
-// 欄に収まらない記号は2行に分ける:Fc|8-6-2-4、ケ1E-6|(3)、E5|(3)、CS|2-6、K|2-3、6-4-3|DP。それでも長いときは「-」の位置で分ける
-function splitLab(t, fs, maxW) {
-  if (txtPx(t, fs) <= maxW) return [t];
+// 英字は全角で書く(No.42)。数字・かっこ・ハイフンは半角のまま。1文字だけの数字は全角で大きく(No.39)
+function toFW(t) { return String(t).replace(/[A-Za-z]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0)); }
+function digFW(t) { return String(t).replace(/\d/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0)); }
+// 2行に分けるときの分け方:Fc|8-6-2-4、ケ1E-6|(3)、2-6E|(3)、CS|2-6、K|2-3、6-4-3|DP、BH|5。それでも長いときは「-」の位置で分ける
+function split2(t) {
   let m;
   if ((m = /^(\S+) (.+)$/.exec(t))) return [m[1], m[2]];
-  if ((m = /^(Fc)(.+)$/.exec(t))) return [m[1], m[2]];
+  if ((m = /^([FＦ][cｃ])(.+)$/.exec(t))) return [m[1], m[2]];
   if ((m = /^(.+)(\(\d+\))$/.exec(t))) return [m[1], m[2]];
-  if ((m = /^(.+)(DP)$/.exec(t))) return [m[1], m[2]];
+  if ((m = /^(.+)([DＤ][PＰ])$/.exec(t))) return [m[1], m[2]];
+  if ((m = /^([BＢ][HＨ])(.+)$/.exec(t))) return [m[1], m[2]];
   const ds = [...t].map((c, i) => c === '-' ? i : -1).filter(i => i > 0);
   if (ds.length) { const mid = ds.reduce((a, i) => Math.abs(i - t.length / 2) < Math.abs(a - t.length / 2) ? i : a, ds[0]); return [t.slice(0, mid + 1), t.slice(mid + 1)]; }
-  return [t];
+  return null;
 }
-function qText(x, y, t, c, size, d, bt, bi) {
+// マスの四隅の欄に文字を書く(No.42)。q:0 本塁(左下) 1 一塁(右下) 2 二塁(右上) 3 三塁(左上)。
+// 文字はマスの角に寄せる(右の欄は右寄せ、左の欄は左寄せ。下の欄は下から、上の欄は上から)。ダイヤモンドの線にかからない幅に収める。
+// 収まらないときは No.39 の順で詰める:英字を半角に戻す → 2行に分ける → 小さく(12px まで)
+// wide:ダイヤモンドの外の帯(上下)で使える幅。となりの欄の文字が短ければ、1行を横に長く書いてよい
+function qLayout(q, t, size, one, wide, pad) {
+  const left = q === 0 || q === 3, top = q === 2 || q === 3;
+  const cx = BXY[0][0], cy = BXY[1][1], r = DIA_R;
+  const pl = pad.l || 0, pr = pad.r || 0, pb = pad.b || 0;
+  const edgeW = (CW - PW) / 2 - 4 - (left ? pl : pr);                    // 中央の縦の線まで
+  const stripW = (wide != null ? wide : (CW - PW) / 2 + 6) - pl - pr;    // ダイヤモンドの外の帯(上下)の幅(となりの欄の文字の分を除く)
+  const base = size || (one ? 19 : t.length > 4 ? 12 : t.length > 2 ? 14 : 16);
+  const fits = (lines, fs) => {
+    const lh = fs * 1.05, n = lines.length;
+    return lines.every((s, i) => {
+      const yb = top ? 3 + fs * 0.8 + i * lh : CH - 3.5 - pb - (n - 1 - i) * lh; // 文字の下の線(ベースライン)
+      const ya = yb - fs * 0.75, yz = yb + fs * 0.2;
+      const near = top ? yz : ya;                                        // ダイヤモンドに近い側
+      const hw = Math.max(0, r - Math.abs(near - cy) + 1.5);
+      const w = txtPx(s, fs);
+      if (hw > 0) return w <= (CW - 3 - cx - hw - 1) - (left ? pl : pr);
+      return w <= (n === 1 ? stripW : edgeW + 6);
+    });
+  };
+  const fw = toFW(t);
+  for (let fs = Math.max(MIN_FS, base); fs >= MIN_FS; fs--) {
+    const cands = [[fw], [t]];
+    const sp = split2(t);
+    if (sp) cands.push(sp.map(toFW), sp);
+    for (const c of cands) if (fits(c, fs)) return { lines: c, fs };
+  }
+  const sp = split2(t);
+  return { lines: sp || [t], fs: MIN_FS };
+}
+function qText(q, t, c, size, d, bt, bi, wide, padR) {
   const col = COLOR[c || ''];
-  // 1文字で済むときは、数字を全角にして大きく書く(No.39。例 ゴロの「６」、フライの「８」、安打の方向「７」)
+  t = String(t);
   const one = /^\d$/.test(t) && !size;
-  if (one) t = String.fromCharCode(t.charCodeAt(0) + 0xFEE0);
-  const fs = Math.max(MIN_FS, size || (one ? 19 : t.length > 4 ? 12 : t.length > 2 ? 14 : 16));
-  const lines = splitLab(t, fs, QW);
-  const lh = fs * 1.05, w = Math.max(...lines.map(s => txtPx(s, fs)));
-  x = Math.max(PW + 2 + w / 2, Math.min(CW - 2 - w / 2, x)); // マスからはみ出さないように
-  const y0 = y - (lines.length - 1) * lh / 2;
-  let h = lines.map((s, i) => `<text x="${x}" y="${y0 + i * lh + fs * 0.36}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="${col}">${esc(s)}</text>`).join('');
-  if (lines.length > 1) return h; // 2行のときは飾りを付けない(長い記号には付かない)
+  if (one) t = digFW(t);
+  // 飾りの分の余白(△ 犠飛・□ 犠打・線際の点・長打の点)
+  const pad = { l: d === 'lineL' ? 7 : d === 'tri' ? 8 : d === 'box' ? 4 : 0, r: (d === 'lineR' ? 7 : d === 'tri' ? 8 : d === 'box' ? 4 : d === 'dot' ? 6 : 0) + (padR || 0), b: d === 'tri' || d === 'box' || d === 'ul' ? 4 : 0 };
+  const { lines, fs } = qLayout(q, t, size, one, wide, pad);
+  const left = q === 0 || q === 3, top = q === 2 || q === 3;
+  const lh = fs * 1.05, n = lines.length;
+  const ax = left ? PW + 3 + pad.l : CW - 3 - pad.r;
+  let h = lines.map((s, i) => {
+    const yb = top ? 3 + fs * 0.8 + i * lh : CH - 3.5 - pad.b - (n - 1 - i) * lh;
+    return `<text x="${ax.toFixed(1)}" y="${yb.toFixed(1)}" text-anchor="${left ? 'start' : 'end'}" font-size="${fs}" font-weight="800" fill="${col}">${esc(s)}</text>`;
+  }).join('');
+  if (n > 1) return h; // 2行のときは飾りを付けない(長い記号には付かない)
+  const s0 = lines[0], w = txtPx(s0, fs);
+  const x = left ? ax + w / 2 : ax - w / 2;
+  const yb = top ? 3 + fs * 0.8 : CH - 3.5 - pad.b, y = yb - fs * 0.36;
   // 打球の種類の記号を、最初に処理した野手の番号の上に:ゴロ ∪、フライ ⌒、ライナー ー
   if (bt) {
-    const cw = txtPx([...t][bi || 0] || '0', fs), cx = x - w / 2 + ((bi || 0) + 0.5) * cw, top = y - fs * 0.62, r = Math.max(3.8, Math.min(cw, fs * 0.62) * 0.62);
-    if (bt === 'G') h += `<path d="M${cx - r} ${top - 6.5} Q${cx} ${top + 1.5} ${cx + r} ${top - 6.5}" fill="none" stroke="${col}" stroke-width="1.5"/>`;
-    if (bt === 'F') h += `<path d="M${cx - r} ${top - 1} Q${cx} ${top - 9} ${cx + r} ${top - 1}" fill="none" stroke="${col}" stroke-width="1.5"/>`;
-    if (bt === 'L') h += `<line x1="${cx - r}" y1="${top - 3}" x2="${cx + r}" y2="${top - 3}" stroke="${col}" stroke-width="1.7"/>`;
+    const ch = [...s0], cw = txtPx(ch[bi || 0] || '0', fs);
+    const off = txtPx(ch.slice(0, bi || 0).join(''), fs);
+    const cx = x - w / 2 + off + cw / 2, tp = y - fs * 0.62, rr = Math.max(3.8, Math.min(cw, fs * 0.62) * 0.62);
+    if (bt === 'G') h += `<path d="M${cx - rr} ${tp - 6.5} Q${cx} ${tp + 1.5} ${cx + rr} ${tp - 6.5}" fill="none" stroke="${col}" stroke-width="1.5"/>`;
+    if (bt === 'F') h += `<path d="M${cx - rr} ${tp - 1} Q${cx} ${tp - 9} ${cx + rr} ${tp - 1}" fill="none" stroke="${col}" stroke-width="1.5"/>`;
+    if (bt === 'L') h += `<line x1="${cx - rr}" y1="${tp - 3}" x2="${cx + rr}" y2="${tp - 3}" stroke="${col}" stroke-width="1.7"/>`;
   }
-  if (d === 'inf') h += `<path d="M${x - w / 2 - 3} ${y - fs * 0.3} A${w / 2 + 3} ${fs * 0.75} 0 0 0 ${x + w / 2 + 3} ${y - fs * 0.3}" fill="none" stroke="${col}" stroke-width="1.3"/>`;
   if (d === 'ul') h += `<line x1="${x - w / 2 - 1}" y1="${y + fs * 0.62}" x2="${x + w / 2 + 1}" y2="${y + fs * 0.62}" stroke="${col}" stroke-width="1.6"/>`; // 強襲:番号の下に線
   if (d === 'over' || d === 'gap') h += `<circle cx="${x}" cy="${y - fs * 0.95}" r="2.2" fill="${col}"/>`;
   if (d === 'lineL') h += `<circle cx="${x - w / 2 - 3.5}" cy="${y}" r="2.2" fill="${col}"/>`;
@@ -1010,6 +1088,18 @@ function qText(x, y, t, c, size, d, bt, bi) {
   if (d === 'box') h += `<rect x="${x - w / 2 - 3}" y="${y - fs * 0.62}" width="${w + 6}" height="${fs * 1.3}" fill="none" stroke="${col}" stroke-width="1.3"/>`;
   if (d === 'tri') h += `<path d="M${x} ${y - fs * 1.05} L${x + w / 2 + 7} ${y + fs * 0.62} L${x - w / 2 - 7} ${y + fs * 0.62} Z" fill="none" stroke="${col}" stroke-width="1.3"/>`;
   return h;
+}
+// 内野安打(No.48):本塁→一塁の赤い線のすぐ外側に守備位置の数字(全角)を書き、線と曲線で囲む(線を弦にした半月の形)
+function infHit(p) {
+  const [hx, hy] = BXY[0], [fx, fy] = BXY[1], ccx = BXY[0][0], ccy = BXY[1][1];
+  const mx = (hx + fx) / 2, my = (hy + fy) / 2, L = Math.hypot(fx - hx, fy - hy);
+  const ux = (fx - hx) / L, uy = (fy - hy) / L;
+  let nx = mx - ccx, ny = my - ccy; const nl = Math.hypot(nx, ny); nx /= nl; ny /= nl; // 外向き
+  const hl = 12, k = 34, col = COLOR.hit;
+  const ax = mx - ux * hl, ay = my - uy * hl, bx = mx + ux * hl, by = my + uy * hl;
+  const tx = mx + nx * 8.5, ty = my + ny * 8.5, fs = 14;
+  return `<path d="M${ax.toFixed(1)} ${ay.toFixed(1)} Q${(mx + nx * k).toFixed(1)} ${(my + ny * k).toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)}" fill="none" stroke="${col}" stroke-width="1.5"/>`
+    + `<text x="${tx.toFixed(1)}" y="${(ty + fs * 0.36).toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="${col}">${esc(digFW(p))}</text>`;
 }
 // 投球の印(● ボール × 見逃し ×に横線 空振り △ ファウル △に点 バントファウル)。直径 7px ほど
 function pitchMark(k, x, y) {
@@ -1038,7 +1128,8 @@ function cellSvg(l, isLast) {
   h += `<polygon points="${BXY.map(p => p.join(',')).join(' ')}" fill="none" stroke="#b9c7bd" stroke-width="1.2"/>`;
   // 線を引くのは打者自身の安打の分だけ(赤)。それ以外の進塁は線を引かず、到達した塁の欄に文字だけ書く
   const hit = RESULTS[l.result] && RESULTS[l.result].hit;
-  // 継続線(No.34):1つのプレーで2つ以上の塁を進んだときは、塁の欄を細い線でつなぐ(例:失策が続いて三塁の欄 2-E6 と本塁の欄 E5-2)
+  const items = []; // 四隅の欄に書く文字(あとでまとめて書く)
+  // 継続線(No.34):1つのプレーで2つ以上の塁を進んだときは、塁の欄を細い線でつなぐ(例:失策が続いて三塁の欄 2-6E と本塁の欄 5E-2)
   meta.path.forEach((seg, k) => {
     if (seg.from === 0 && !seg.by) return;
     const prev = meta.path[k - 1], same = prev && prev.play != null && prev.play === seg.play && !(prev.from === 0 && !prev.by);
@@ -1046,8 +1137,9 @@ function cellSvg(l, isLast) {
     if (a == null || a % 4 === seg.to % 4) return;
     // 線はマスの端に沿って引く(塁の図と重ならないように)。左右の欄どうしは縦、上下の欄どうしは横、対角(二塁→本塁)は斜め
     const [x1, y1] = QXY[a % 4], [x2, y2] = QXY[seg.to % 4];
-    if (x1 === x2) { const ex = x1 < CW / 2 ? PW + 3 : CW - 3; h += `<line x1="${ex}" y1="${Math.min(y1, y2) + 12}" x2="${ex}" y2="${Math.max(y1, y2) - 12}" stroke="#5f6f65" stroke-width="1.4"/>`; }
-    else if (y1 === y2) { const ey = y1 < CH / 2 ? 3 : CH - 3; h += `<line x1="${Math.min(x1, x2) + 10}" y1="${ey}" x2="${Math.max(x1, x2) - 10}" y2="${ey}" stroke="#5f6f65" stroke-width="1.4"/>`; }
+    // 文字はマスの角に寄せて書くので、線はマスの縁ぎりぎり(1.2px 内側)に引く
+    if (x1 === x2) { const ex = x1 < CW / 2 ? PW + 1.2 : CW - 1.2; h += `<line x1="${ex}" y1="${Math.min(y1, y2) + 18}" x2="${ex}" y2="${Math.max(y1, y2) - 18}" stroke="#5f6f65" stroke-width="1.4"/>`; }
+    else if (y1 === y2) { const ey = y1 < CH / 2 ? 1.2 : CH - 1.2; h += `<line x1="${Math.min(x1, x2) + 8}" y1="${ey}" x2="${Math.max(x1, x2) - 8}" y2="${ey}" stroke="#5f6f65" stroke-width="1.4"/>`; }
     else { const L = Math.hypot(x2 - x1, y2 - y1), cut = 14 / L; h += `<line x1="${x1 + (x2 - x1) * cut}" y1="${y1 + (y2 - y1) * cut}" x2="${x2 - (x2 - x1) * cut}" y2="${y2 - (y2 - y1) * cut}" stroke="#5f6f65" stroke-width="1.4"/>`; }
   });
   for (const seg of meta.path) {
@@ -1058,17 +1150,26 @@ function cellSvg(l, isLast) {
         h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${COLOR.hit}" stroke-width="2.6" stroke-linecap="round"/>`;
       }
     }
-    // 到達した塁の欄:(3) 3番打者の打球で進塁、S(3) 盗塁、WP(3) 暴投、PB(3) 捕逸、Bk(3) ボーク、E5(3) 失策、Ob(3) 走塁妨害、2-E6(3)・E5-2(3) 1つのプレーで2つの失策(塁の欄を細い線でつなぐ。2つ以上の塁を一度に進んだときも線でつなぐ) ケ1E-6(3) 牽制のエラー。
+    // 到達した塁の欄:(3) 3番打者の打球で進塁、S(3) 盗塁、WP(3) 暴投、PB(3) 捕逸、Bk(3) ボーク、2-5E(3) 失策、Ob(3) 走塁妨害、2-6E(3)・5E-2(3) 1つのプレーで2つの失策(塁の欄を細い線でつなぐ。2つ以上の塁を一度に進んだときも線でつなぐ) ケ1E-6(3) 牽制のエラー。
     // 打者走者自身が送球の間に先の塁へ進んだ分は、Fc+送球にかかわった野手(例 Fc8-6-2)
     let lab = seg.by;
-    if (own && seg.to > (hit || 1) && seg.to < 4) lab = l.drop && l.drop.cause === 'E' ? 'E' + ((l.drop.err && l.drop.err.f) || '') : l.bxf && l.bxf.length ? 'Fc' + l.bxf.join('-') : l.bx ? 'Fc' : '(' + (l.slot + 1) + ')';
-    if (lab) { const [x, y] = QXY[seg.to % 4]; h += qText(x, y, lab, '', 12); }
+    if (own && seg.to > (hit || 1) && (seg.to < 4 || l.bxe || (l.bxf && l.bxf.length) || (l.drop && l.drop.cause === 'E'))) lab = l.drop && l.drop.cause === 'E' ? dropErrLab(l.drop.err) : l.bxe && l.bxe.errs && l.bxe.errs.length ? bxeLab(l.bxe) : l.bxf && l.bxf.length ? 'Fc' + l.bxf.join('-') : l.bx ? 'Fc' : '(' + (l.slot + 1) + ')';
+    if (lab) items.push({ q: seg.to % 4, t: lab, size: 12 });
   }
   // 打者の結果:一塁の欄(右下)。打席の途中で3アウトのときは結果を書かない
-  if (l.result === 'NP') h += `<text x="${QXY[1][0]}" y="${QXY[1][1] + 4}" text-anchor="middle" font-size="12" fill="#5f6f65">打席中</text>`;
-  else h += qText(QXY[1][0], QXY[1][1] + (note.b ? 2 : 0), note.t, note.c, null, note.d, note.b, note.bi);
+  if (l.result === 'NP') h += `<text x="${CW - 3}" y="${CH - 4}" text-anchor="end" font-size="12" fill="#5f6f65">打席中</text>`;
+  else if (note.d === 'inf') h += infHit(note.t); // 内野安打は本塁→一塁の線の外に半月(No.48)
+  else if (note.t) items.push({ q: 1, t: note.t, c: note.c, d: note.d, b: note.b, bi: note.bi });
   // 走者のアウト:線は引かず、アウトになった塁(次の塁)の欄に守備番号(CS 盗塁死、ケ 牽制死)。中央にアウトの数
-  if (meta.out && meta.out.from > 0 && meta.out.label) { const [x, y] = QXY[(meta.out.from + 1) % 4]; h += qText(x, y, meta.out.label, '', 12); }
+  if (meta.out && meta.out.from > 0 && meta.out.label) items.push({ q: (meta.out.from + 1) % 4, t: meta.out.label, size: 12 });
+  // 四隅の欄の文字:となりの欄(左右)が空いていれば、帯の中で横に長く書いてよい
+  const NB = { 0: 1, 1: 0, 2: 3, 3: 2 }, half = (CW - PW) / 2;
+  const estW = it => { const t = String(it.t); return /^\d$/.test(t) && !it.size ? 21 : Math.min(half, txtPx(toFW(t), it.size || 12) + (it.d ? 8 : 0)); };
+  items.forEach(it => {
+    const nb = items.filter(x => x.q === NB[it.q]);
+    const wide = CW - PW - 6 - (nb.length ? Math.max(...nb.map(estW)) + 6 : 0) - (isLast && it.q !== 1 && NB[it.q] === 1 ? 9 : 0);
+    h += qText(it.q, it.t, it.c, it.size, it.d, it.b, it.bi, wide, isLast && it.q === 1 ? 9 : 0); // 3アウト目の斜線をよける
+  });
   // 中央:アウトカウント(Ⅰ Ⅱ Ⅲ。書体で)/得点(○ 自責点は ●)
   if (meta.out) h += `<text x="${cx}" y="${cy + 7}" text-anchor="middle" font-size="21" font-weight="700" style="font-family:${ROMAN_FONT}" fill="#1d2a22">${ROMAN[meta.out.no] || ''}</text>`;
   else if (meta.scored) h += meta.earned ? `<circle cx="${cx}" cy="${cy}" r="8.5" fill="#1d2a22"/>` : `<circle cx="${cx}" cy="${cy}" r="8" fill="none" stroke="#1d2a22" stroke-width="2.2"/>`;
@@ -1158,12 +1259,13 @@ function renderBook(side) {
     h += '</tr>';
   });
   h += '</tbody></table></div>';
-  h += `<div class="legend"><b>記号(全日本野球協会推奨の書き方)</b>
-    <span>投球:● ボール × 見逃し ×に横線 空振り △ ファウル △に点 バントファウル</span>
-    <span>右下(一塁の欄)に打者の結果:<i class="r">赤い線と数字</i> 安打(線を引くのは安打の分だけ)(数字は打球の方向。外野の点は位置:番号の上=頭上を越えた、左右=線際、78・89の上=左中間・右中間。位置の点がないときの右上の・は長打、半円は内野安打、番号の下の線は強襲安打、BH バント安打) <i class="bl">B</i> 四球 <i class="bl">HP</i> 死球 K 三振。打球の種類は最初の野手の番号の上に ∪ ゴロ ⌒ フライ ー ライナー(例:５の上に∪で、一塁へ送球してアウトの三ゴロ。一塁手への送球「-3」は省き、1文字のときは全角で大きく書く) <i class="bl">□</i> 犠打 <i class="bl">△</i> 犠飛 2F など ファウルフライ(番号に F) E 失策 Fc 野選 DP 併殺 IF 打撃妨害 × 守備妨害 KP 振り逃げで出塁 K 2-3 振り逃げアウト</span>
-    <span>進塁(線は引かず、到達した塁の欄に書く。かっこの数字はそのとき打席にいた打者の打順):(3) 3番打者の打球で進塁 S(3) 盗塁 WP(3) 暴投 PB(3) 捕逸 Bk(3) ボーク E5(3) など失策(数字は失策した野手) Ob(3) 走塁妨害 ケ1E-6(3) 牽制のエラー(投げた野手の悪送球。受けた野手が捕れなければ ケ1-6E) Fc8-6-2 打者走者が送球(中継プレー)の間に進んだ(送球にかかわった野手の順)</span>
-    <span>中央:I II III アウト ● 得点(自責点) ○ 得点(自責点でない) ℓ 残塁。走者アウトは、アウトになった塁の欄に守備番号(CS 盗塁死、ケ1-3(3) 牽制死)</span>
-    <span>右下隅の斜線:そのイニングの3アウト目の打者</span></div>`;
+  // 記号の説明(No.41):記号の意味だけ。英字はマスと同じく全角、数字・かっこは半角
+  const L = (k, v, c) => `<span class="lgi"><i class="${c || ''}">${k}</i>${v}</span>`;
+  h += `<div class="legend">
+    <div><b>投球</b>${L('●', 'ボール')}${L('×', '見逃し')}${L('×に横線', '空振り')}${L('△', 'ファウル')}${L('△に点', 'バントファウル')}</div>
+    <div><b>打者</b>${L('赤い線', '安打', 'r')}${L('数字', '打球の方向(守備番号)')}${L('∪', 'ゴロ')}${L('⌒', 'フライ')}${L('ー', 'ライナー')}${L('・', '長打', 'r')}${L('線と曲線で囲んだ数字', '内野安打', 'r')}${L('数字の下線', '強襲安打', 'r')}${L('ＢＨ５', 'バント安打(数字は打球の方向)', 'r')}${L('Ｂ', '四球', 'bl')}${L('ＨＰ', '死球', 'bl')}${L('Ｋ', '三振')}${L('□', '犠打', 'bl')}${L('△', '犠飛', 'bl')}${L('２Ｆ', 'ファウルフライ')}${L('５Ｅ', '失策(数字は失策した野手)')}${L('６Ｅ-3', '送球の失策')}${L('５-3Ｅ', '捕球の失策')}${L('Ｆｃ', '野選')}${L('ＤＰ', '併殺')}${L('ＩＦ', '打撃妨害')}${L('×', '守備妨害')}${L('ＫＰ', '振り逃げで出塁')}${L('Ｋ 2-3', '振り逃げアウト')}</div>
+    <div><b>進塁</b>${L('(3)', '3番打者の打球で進塁')}${L('Ｓ', '盗塁')}${L('ＷＰ', '暴投')}${L('ＰＢ', '捕逸')}${L('Ｂｋ', 'ボーク')}${L('７Ｅ', '後逸(捕球の失策)')}${L('７Ｅ-4', '送球の失策')}${L('2-６Ｅ-８Ｅ', '失策が2つ')}${L('Ｏｂ', '走塁妨害')}${L('ケ1Ｅ-6', '牽制のエラー')}${L('Ｆｃ8-6-2', '送球の間に進んだ(打者走者)')}${L('細い線', '同じプレーで進んだ塁')}</div>
+    <div><b>アウト・得点</b>${L('I II III', 'アウト', 'rm')}${L('ＣＳ', '盗塁死')}${L('ケ1-3', '牽制死')}${L('●', '得点(自責点)')}${L('○', '得点(自責点でない)')}${L('ℓ', '残塁')}${L('斜線', '3アウト目の打者')}</div></div>`;
   return h;
 }
 
@@ -1365,8 +1467,8 @@ function posOptions(sel) {
 function gradeOptions(sel) {
   return [1, 2, 3, 4, 5, 6].map(g => `<option value="${g}" ${String(g) === String(sel) ? 'selected' : ''}>${g}</option>`).join('');
 }
-// 控え選手(ベンチ入りは先発9名と合わせて25名まで)
-const BENCH_MAX = 16, BENCH_INIT = 7;
+// 控え選手(ベンチ入りは先発9名と合わせて30名まで。No.44 で 25名 → 30名)
+const TEAM_MAX = 30, BENCH_MAX = TEAM_MAX - 9, BENCH_INIT = 7;
 function benchRow(t, i) {
   return t === 'o' ? `<tr data-i="${i}"><td class="n">控</td><td><input class="num" name="obn${i}" inputmode="numeric"></td><td><input name="obm${i}" placeholder="名前"></td><td><select name="obg${i}">${gradeOptions(5)}</select></td></tr>`
     : `<tr data-i="${i}"><td class="n">控</td><td><input class="num" name="tbn${i}" inputmode="numeric"></td><td><input name="tbm${i}" placeholder="(任意)"></td></tr>`;
@@ -1374,15 +1476,15 @@ function benchRow(t, i) {
 function benchCard(t) {
   const rows = Array.from({ length: BENCH_INIT }, (_, i) => benchRow(t, i)).join('');
   const cols = t === 'o' ? '<col style="width:22px"><col style="width:58px"><col><col style="width:52px">' : '<col style="width:22px"><col style="width:58px"><col>';
-  return `<h2 style="margin-top:14px">控え選手 <span class="benchcnt" id="bc-${t}">ベンチ入り 9 / 25名</span></h2>
+  return `<h2 style="margin-top:14px">控え選手 <span class="benchcnt" id="bc-${t}">ベンチ入り 9 / ${TEAM_MAX}名</span></h2>
     <table class="lineup"><colgroup>${cols}</colgroup><tr><th></th><th>背番号</th><th>名前</th>${t === 'o' ? '<th>学年</th>' : ''}</tr><tbody id="bench-${t}">${rows}</tbody></table>
     <button type="button" data-a="addb" data-k="${t}" style="width:100%;margin-top:6px">+ 控えの欄を増やす</button>
-    <p class="note">背番号を入れた行だけが控えになります(空欄の行は無視)。先発と合わせて25名まで。</p>`;
+    <p class="note">背番号を入れた行だけが控えになります(空欄の行は無視)。先発と合わせて${TEAM_MAX}名まで。</p>`;
 }
 function benchCount(t) {
   const f = document.getElementById('setup'); if (!f) return;
   const n = [...f.querySelectorAll(`#bench-${t} input.num`)].filter(x => x.value.trim()).length;
-  const el = document.getElementById('bc-' + t); if (el) { el.textContent = 'ベンチ入り ' + (9 + n) + ' / 25名'; el.style.color = 9 + n > 25 ? 'var(--out)' : ''; }
+  const el = document.getElementById('bc-' + t); if (el) { el.textContent = 'ベンチ入り ' + (9 + n) + ' / ' + TEAM_MAX + '名'; el.style.color = 9 + n > TEAM_MAX ? 'var(--out)' : ''; }
 }
 document.addEventListener('input', e => { if (e.target.closest && e.target.closest('#bench-o')) benchCount('o'); if (e.target.closest && e.target.closest('#bench-t')) benchCount('t'); });
 // ---------- 選手名簿(自チーム) ----------
@@ -1412,7 +1514,7 @@ const DEF_POS = ['8', '4', '6', '3', '5', '9', '7', '2', '1'];
 // 「前の試合と同じにする」を押したときだけ、前の試合の打順・守備位置・控えを入れる(退団した選手は外す)
 function okId(id) { const p = id && rp(id); return !!(p && !p.left); }
 function hasLastDraft() { const l = roster.last; return !!(l && l.order && l.order.some(o => okId(o.id))); }
-function initDraft() { ui.draft = { order: DEF_POS.map(() => ({ id: null, pos: '' })), bench: [] }; }
+function initDraft() { ui.draft = { order: DEF_POS.map(() => ({ id: null, pos: '' })), bench: [], excl: [], age: 'U12', type: '公式戦' }; }
 function lastDraft() {
   const last = roster.last || {};
   const order = DEF_POS.map((pos, i) => {
@@ -1421,9 +1523,41 @@ function lastDraft() {
   });
   const inLu = new Set(order.map(o => o.id));
   const bench = (last.bench || []).filter(id => okId(id) && !inLu.has(id));
-  ui.draft = { order, bench };
+  // 「前の試合と同じ」:控えも前の試合のまま(前の試合で控えにいなかった選手は、自動では控えに入れない)
+  const keep = ui.draft || {};
+  ui.draft = { order, bench, excl: activePlayers().map(p => p.id).filter(id => !inLu.has(id) && !bench.includes(id)), age: keep.age || 'U12', type: keep.type || '公式戦' };
+  draftDropIneligible();
 }
 function draftUsed() { return new Set(ui.draft.order.map(o => o.id).filter(Boolean)); }
+// 年代(No.45):U-12 全員、U-11 5年生以下、U-10 4年生以下。種別が「その他」のときは年代にかかわらず全員。学年が入っていない選手は絞れないので出す
+const AGES = [['U12', 'U-12', '全員'], ['U11', 'U-11', '5年生以下'], ['U10', 'U-10', '4年生以下']];
+const AGE_MAX = { U12: 6, U11: 5, U10: 4 };
+function ageLabel(a) { const x = AGES.find(z => z[0] === a); return x ? x[1] : ''; }
+function canPlay(grade, age, type) {
+  if (type === 'その他') return true;
+  const g = parseInt(grade, 10), mx = AGE_MAX[age || 'U12'] || 6;
+  return !g || g <= mx;
+}
+function draftOK(p) { const d = ui.draft || {}; return !!p && canPlay(p.grade, d.age, d.type); }
+function eligiblePlayers() { return activePlayers().filter(draftOK); }
+// 年代・種別を変えたとき、出られなくなった選手を打順・控えから外して知らせる
+function draftDropIneligible() {
+  const d = ui.draft, out = [];
+  d.order.forEach(o => { const p = o.id && rp(o.id); if (p && !draftOK(p)) { out.push(p); o.id = null; } });
+  d.bench = d.bench.filter(id => { const p = rp(id); if (p && !draftOK(p)) { out.push(p); return false; } return true; });
+  d.msg = out.length ? out.map(p => (p.grade ? p.grade + '年生の' : '') + p.name + 'さん').join('、') + 'は ' + ageLabel(d.age) + ' に出られないので外しました' : '';
+}
+// スタメン以外の選手は自動で控えに入れる(No.44):9人そろったら、出られる選手を全員控えに(押して外した選手は戻さない)。
+// 30名を超えるときは背番号の順に30名まで
+function draftAutoBench() {
+  const d = ui.draft; if (draftNext() >= 0) return;
+  const used = draftUsed(), ex = new Set(d.excl || []);
+  d.bench = d.bench.filter(id => !used.has(id) && draftOK(rp(id)));
+  const want = eligiblePlayers().filter(p => !used.has(p.id) && !ex.has(p.id) && !d.bench.includes(p.id));
+  const room = TEAM_MAX - used.size - d.bench.length;
+  want.slice(0, Math.max(0, room)).forEach(p => d.bench.push(p.id));
+  d.over = Math.max(0, want.length - Math.max(0, room));
+}
 // 学年の色(選手の札の左の帯):6年 青、5年 緑、4年 黄、3年以下 灰。相手チームは学年がないので色なし
 function gradeCls(g) { const n = parseInt(g, 10); return !n ? '' : n >= 6 ? 'gr6' : n === 5 ? 'gr5' : n === 4 ? 'gr4' : 'gr3'; }
 function gradeLegend() { return `<div class="grl">${[['#2f6fd6', '6年'], ['#2f9e52', '5年'], ['#e0b000', '4年'], ['#9aa4ac', '3年以下']].map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}<span>(札の左の帯の色)</span></div>`; }
@@ -1443,9 +1577,13 @@ function draftProblems() {
 }
 function ourCardHtml() {
   if (!ui.draft) initDraft();
-  const d = ui.draft, used = draftUsed(), act = activePlayers(), nx = draftNext(), sel = d.sel || {};
+  draftAutoBench();
+  const d = ui.draft, used = draftUsed(), act = eligiblePlayers(), nx = draftNext(), sel = d.sel || {};
+  const hidden = activePlayers().length - act.length;
   let h = `<h2>自チームの打順と守備 <button type="button" data-a="roster" class="mini" style="float:right">名簿(${act.length}名)</button></h2>`;
   if (!act.length) h += `<div class="tw">${isAdmin() ? '選手名簿がまだありません。「名簿」で選手を登録してください。' : '選手名簿がまだありません。「名簿」から、管理者の端末で書き出した名簿を取り込んでください。'}</div>`;
+  if (d.msg) h += `<p class="err">${esc(d.msg)}</p>`;
+  if (hidden) h += `<p class="note">${esc(ageLabel(d.age))}(${esc((AGES.find(z => z[0] === d.age) || [])[2] || '')})に出られない ${hidden}名は表示していません。</p>`;
   h += `<div class="nextbat">${nx >= 0 ? `いま入れる打順:<b>${nx + 1}番</b><small>下の選手を、守る位置へドラッグ(または選手をタップ → 位置をタップ)</small>` : '<b>9人そろいました</b><small>守備位置は図の上で動かせます</small>'}</div>
     <div class="fld" id="dfld" style="max-width:360px">${fieldBg()}`;
   Object.keys(FZ_XY).forEach(k => {
@@ -1461,10 +1599,11 @@ function ourCardHtml() {
   if (nopos.length) h += `<div class="gt">守備位置が決まっていない選手(図へドラッグ)</div><div class="fbench">${nopos.map(({ o, i }) => { const p = rp(o.id); return `<div class="fchip ${p ? gradeCls(p.grade) : ''} ${sel.slot === i ? 'sel' : ''}" data-a="dsel" data-k="${i}" data-dslot="${i}">${chipBody(p, `<b>${i + 1}</b>`)}</div>`; }).join('')}</div>`;
   // 名簿の選手(打順に入っていない):図へドラッグすると次の打順に入る
   const cand = act.filter(p => !used.has(p.id));
-  h += `<h2 style="margin-top:14px">${nx >= 0 ? '選手(図の守備位置へドラッグ)' : '控え選手'} <span class="benchcnt">ベンチ入り ${used.size + d.bench.length} / 25名</span></h2>`;
+  h += `<h2 style="margin-top:14px">${nx >= 0 ? '選手(図の守備位置へドラッグ)' : '控え選手'} <span class="benchcnt">ベンチ入り ${used.size + d.bench.length} / ${TEAM_MAX}名</span></h2>`;
+  if (nx < 0 && d.over) h += `<p class="err">${TEAM_MAX}名を超えたので、${d.over}名は控えに入っていません(背番号の順に${TEAM_MAX}名まで)。</p>`;
   if (cand.length) {
     if (nx >= 0) h += `<div class="fbench" data-pz="out">${cand.map(p => `<div class="fchip ${gradeCls(p.grade)} ${sel.rid === p.id ? 'sel' : ''} ${d.bench.includes(p.id) ? 'on' : ''}" data-a="rsel" data-k="${p.id}" data-rid="${p.id}">${chipBody(p, '', d.bench.includes(p.id) ? '控え' : '')}</div>`).join('')}</div><p class="note">9人そろうと、残りの選手から控えを選べます。打順から外すときは、図の選手をここへドラッグするか「外す」。</p>`;
-    else h += `<p class="note">押すとベンチ入り(緑)/外す を切り替えます。</p><div class="bench2" data-pz="out">${cand.map(p => `<button type="button" data-a="btog" data-k="${p.id}" class="${gradeCls(p.grade)} ${d.bench.includes(p.id) ? 'on' : ''}"><b>#${esc(p.no)}</b> ${esc(p.name)}${p.grade ? `<small>${esc(p.grade)}年</small>` : ''}${provTag(p)}</button>`).join('')}</div>
+    else h += `<p class="note">スタメン以外の選手は自動で控え(緑)に入ります。来ていない選手は押して外してください。</p><div class="bench2" data-pz="out">${cand.map(p => `<button type="button" data-a="btog" data-k="${p.id}" class="${gradeCls(p.grade)} ${d.bench.includes(p.id) ? 'on' : ''}"><b>#${esc(p.no)}</b> ${esc(p.name)}${p.grade ? `<small>${esc(p.grade)}年</small>` : ''}${provTag(p)}</button>`).join('')}</div>
       <div class="row2" style="margin-top:6px"><button type="button" data-a="ball">残り全員を入れる</button><button type="button" data-a="bnone">控えを全部外す</button></div>`;
   } else h += `<p class="note">${act.length ? '名簿の選手は全員スタメンです。' : '名簿に選手が入ると、ここに並びます。'}</p>`;
   // 打順の一覧(並べ替え・外す)
@@ -1489,7 +1628,7 @@ function draftOut(i) { ui.draft.order[i] = { id: null, pos: '' }; ui.draft.sel =
 function renderOurCard() { const el = document.getElementById('ourCard'); if (el) el.innerHTML = ourCardHtml(); }
 // 打順の選手を選ぶ画面
 function modalPick() {
-  const m = ui.modal, d = ui.draft, cur = d.order[m.i].id, act = activePlayers();
+  const m = ui.modal, d = ui.draft, cur = d.order[m.i].id, act = eligiblePlayers();
   const where = id => { const j = d.order.findIndex(o => o.id === id); return j >= 0 ? (j + 1) + '番' : d.bench.includes(id) ? '控え' : ''; };
   return `<h3>${m.i + 1}番(${POS_FULL[d.order[m.i].pos]})の選手</h3>
     ${act.length ? `<p class="note">ほかの打順の選手を選ぶと打順を入れ替えます。</p><div class="pick">${act.map(p => {
@@ -1614,9 +1753,10 @@ function renderSetup() {
     <label>日付<input type="date" name="date" value="${d}"></label>
     <label>大会名<input name="tournament" placeholder="例:秋季大会"></label>
     <div class="row2">
-      <label>種別<select name="type"><option>公式戦</option><option>練習試合</option><option>その他</option></select></label>
+      <div style="grid-column:1/-1"><div class="gt">年代</div><div class="seg3">${AGES.map(([k, lab, sub]) => `<button type="button" data-a="age" data-k="${k}" class="${((ui.draft && ui.draft.age) || 'U12') === k ? 'on' : ''}">${lab}<small>${sub}</small></button>`).join('')}</div></div>
+      <label>種別<select name="type">${['公式戦', '練習試合', 'その他'].map(t => `<option ${((ui.draft && ui.draft.type) || '公式戦') === t ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <label class="chk"><input type="checkbox" name="include" checked> 通算成績に含める</label>
-      <p class="note" style="grid-column:1/-1;margin:0">「通算成績に含める」は、公式戦・練習試合はオン、その他はオフが初期値です(試合一覧で後から変更できます)。</p>
+      <p class="note" style="grid-column:1/-1;margin:0">年代に合う学年の選手だけを、スタメン・控えに出します(種別が「その他」のときは全員)。「通算成績に含める」は、公式戦・練習試合はオン、その他はオフが初期値です(試合一覧で後から変更できます)。</p>
     </div>
     <div class="row2">
       <label>自チーム<input name="ourName" value="${esc(roster.team || '自チーム')}"></label>
@@ -1671,7 +1811,7 @@ function startGame() {
   for (const [t, lu, bn] of [['自チーム', our, ourB], ['相手', opp, oppB]]) {
     if (lu.some(p => !p.no)) err.push(t + ':背番号が空の選手がいます');
     if (bn.some(p => !p.no)) err.push(t + ':背番号が空の控え選手がいます');
-    if (lu.length + bn.length > 25) err.push(t + ':ベンチ入りは25名までです(いま' + (lu.length + bn.length) + '名)');
+    if (lu.length + bn.length > TEAM_MAX) err.push(t + ':ベンチ入りは' + TEAM_MAX + '名までです(いま' + (lu.length + bn.length) + '名)');
     const all = lu.concat(bn).map(p => p.no).filter(Boolean);
     const dn = all.filter((n, i) => all.indexOf(n) !== i);
     if (dn.length) err.push(t + ':背番号 ' + [...new Set(dn)].join('・') + ' が重複しています');
@@ -1688,7 +1828,7 @@ function startGame() {
   store = {
     game: {
       format: 'scorebook', version: 2, id: newGameId(),
-      date: v('date'), tournament: v('tournament'), type: v('type'), includeTotals: f.elements.include.checked,
+      date: v('date'), tournament: v('tournament'), type: v('type'), age: d.age || 'U12', includeTotals: f.elements.include.checked,
       ourName: v('ourName') || '自チーム', oppName: v('oppName') || '相手チーム', ourSide,
       innings: parseInt(v('innings'), 10) || 6, timeLimit: parseInt(v('timeLimit'), 10) || 0, tiebreak: f.elements.tiebreak.checked,
       limits: { upper: parseInt(v('limUp'), 10) || LIMIT_DEF.upper, lower: parseInt(v('limLo'), 10) || LIMIT_DEF.lower, weekUpper: parseInt(v('limWkUp'), 10) || LIMIT_DEF.weekUpper, weekLower: parseInt(v('limWkLo'), 10) || LIMIT_DEF.weekLower },
@@ -1839,8 +1979,8 @@ function renderRec() {
 const RES_COLS = [
   ['安打', 'c-hit', [['H1', '単打'], ['H2', '二塁打'], ['H3', '三塁打'], ['HR', '本塁打']]],
   ['アウト', 'c-out', [['GO', 'ゴロ'], ['FO', 'フライ'], ['LO', 'ライナー'], ['DP', '併殺']]],
-  ['走者', 'c-run', [['SB', '盗塁'], ['WP', '暴投', '投球がそれた'], ['PB', '捕逸', '捕手が捕れず'], ['OBS', '妨害', '打撃・守備', 'c-oth']]],
-  ['その他', 'c-oth', [['SAC', '犠打・犠飛', '', 'c-sac'], ['E', '失策'], ['FC', '野選', '野手選択'], ['DROP', '振り逃げ']]],
+  ['走者', 'c-run', [['SB', '盗塁'], ['WP', '暴投', '投球がそれた'], ['PB', '捕逸', '捕手が捕れず'], ['OBS', '妨害', '打撃・守備']]],
+  ['その他', 'c-oth', [['SAC', '犠打・犠飛'], ['E', '失策'], ['FC', '野選', '野手選択'], ['DROP', '振り逃げ']]],
 ];
 const RUN_BTNS = ['SB', 'WP', 'PB'];
 function resultGrid() {
@@ -1848,7 +1988,7 @@ function resultGrid() {
   return `<div class="rgrid ${dis ? 'dis' : ''}">${RES_COLS.map(([t, cls, ks]) => `<div class="rcol"><div class="rh">${t}</div>${ks.map(([k, lab, sub, cls2]) => {
     const run = RUN_BTNS.includes(k);
     const ok = k === 'DROP' ? dropEligible(S) : run ? S.bases.some(Boolean) : k === 'OBS' ? true : k === 'SAC' ? resultAllowed('SH') : resultAllowed(k);
-    return `<button data-a="${k === 'DROP' ? 'drop' : run ? 'rbtn' : 'res0'}" data-k="${k}" class="rb ${cls2 || cls}${k === 'H1' ? ' k1' : ''}" ${ok ? '' : 'disabled'}>${lab}${sub ? `<small>${sub}</small>` : ''}</button>`;
+    return `<button data-a="${k === 'DROP' ? 'drop' : run ? 'rbtn' : 'res0'}" data-k="${k}" class="rb ${cls2 || cls}" ${ok ? '' : 'disabled'}>${lab}${sub ? `<small>${sub}</small>` : ''}</button>`;
   }).join('')}</div>`).join('')}</div>`;
 }
 // 盗塁・暴投・捕逸のボタンで開く走者の画面の初期値。
@@ -1993,7 +2133,7 @@ function fieldsNext(m) {
   if (!m.fielders.length && !m.later) { m.err = m.drop ? '送球した野手と捕った野手を押してください' : RESULTS[m.result].hit ? '打球が飛んだ方向(どの野手のところか)を押してください' : '打球を処理した野手を押してください'; return render(); }
   // 図の下の打球の種類(内野安打・強襲・バント安打、フライ・ファウルフライなど)も選ぶまで確定できない
   if (!m.later) { const km = kindMissing(m); if (km) { m.err = km; return render(); } }
-  if (!m.later && bxfMissing(m, m.bdest)) { m.err = '打者走者が進んだときの送球にかかわった野手を押してください(分からないときは「あとで入力」)'; return render(); }
+  if (!m.later && bxfMissing(m, m.bdest)) { m.err = bxMsg(m, m.bdest); return render(); }
   if (m.drop && m.drop.safe) { // 振り逃げの送球の失策:失策した野手へ(分からないときは野手なしで走者へ)
     if (!m.fielders.length) { m.drop.err = { f: '', kind: '', path: [] }; m.step = 'runners'; m.err = ''; return render(); }
     m.ef = m.fielders[0]; m.ek = 'throw'; m.step = 'err'; return render();
@@ -2053,7 +2193,7 @@ function startEdit(idx) {
 }
 function editOldText(idx) { const full = replay(store.game, store.events); const l = full.log.find(x => x.idx === idx); return l ? l.text : ''; }
 function startResult(m, k) {
-  m.result = k; m.fielders = []; m.rf = []; m.bdest = undefined; m.loc = ''; m.err = ''; m.hk = null; m.fk = null; m.hrk = null; m.bt = null; m.bxf = []; m.bxLater = false;
+  m.result = k; m.fielders = []; m.rf = []; m.bdest = undefined; m.loc = ''; m.err = ''; m.hk = null; m.fk = null; m.hrk = null; m.bt = null; m.bxf = []; m.bxLater = false; m.bxr = ''; m.bxefs = []; m.bxks = {};
   if (k === 'CI' || k === 'INT') {
     // 打撃妨害:打者は一塁へ(押し出し)。守備妨害:打者アウト、走者は元の塁へ。どちらも捕手が記録上の野手
     m.fielders = ['2'];
@@ -2115,14 +2255,38 @@ function locRow(m) {
 // 振り逃げの送球の失策で打者走者が先へ進んだときは、失策による進塁なので対象外(塁の欄は E2 など)
 function bxBase(m) { const h = RESULTS[m.result] && RESULTS[m.result].hit; return m.drop ? (m.drop.safe && m.drop.cause !== 'E' ? 1 : 0) : h && h < 4 ? h : 0; }
 function bxNeeded(m, dest) { const b = bxBase(m); return !!b && typeof dest === 'number' && dest > b; }
-function bxfMissing(m, dest) { return bxNeeded(m, dest) && !m.bxLater && (m.bxf || []).length < 2; }
+// 打者走者が安打より先へ進んだ理由(No.50):「送球の間(野手選択 Fc)」か「失策」を先に選ぶ。
+// 失策のときは、ボールにかかわった野手を順に押し(例 8 → 6 → 2)、失策した野手(2人以上も可)と種類を選ぶ。
+// スコアブックは E を失策した野手の番号の後ろに付ける:7E(後逸)、7E-4(送球の失策)、8-6-2E(中継の捕球の失策)
+function bxMsg(m, dest) {
+  if (!bxNeeded(m, dest) || m.bxLater) return '';
+  if (!m.bxr) return '打者走者が安打より先へ進んだ理由(送球の間/失策)を選んでください';
+  const a = m.bxf || [];
+  if (m.bxr === 'fc') return a.length < 2 ? '打者走者が進んだときの送球にかかわった野手を2人以上押してください(分からないときは「あとで入力」)' : '';
+  if (!a.length) return 'ボールにかかわった野手を押してください(分からないときは「あとで入力」)';
+  if (!(m.bxefs || []).length) return '失策した野手を押してください';
+  return '';
+}
+function bxfMissing(m, dest) { return !!bxMsg(m, dest); }
+function bxKind(m, f) { const a = m.bxf || []; return (m.bxks || {})[f] || (a.lastIndexOf(f) === a.length - 1 ? 'catch' : 'throw'); }
+function bxeOf(m) { return { path: (m.bxf || []).slice(), errs: (m.bxefs || []).map(f => ({ f, kind: bxKind(m, f) })) }; }
 function bxPad(m, dest) {
   if (!bxNeeded(m, dest)) return '';
   if (!(m.bxf && m.bxf.length) && !m.bxLater && m.fielders[0] && !m.drop) m.bxf = [m.fielders[0]];
-  const a = m.bxf || [];
-  return `<div class="rfbox"><div class="gt">打者走者が進んだときの送球にかかわった野手を順に押す<span class="must">必須</span><br><small>例:センター前安打で本塁へ送球(8-6-2)の間に二塁へ → 8-6-2。捕手から二塁へ送球があってセーフ → 8-6-2-4</small></div>
-    <div class="mpad">${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => `<button data-a="bxp" data-k="${k}">${k}<small>${POS[k]}</small></button>`).join('')}</div>
-    <div class="rfseq">${m.bxLater ? 'あとで入力' : a.length ? esc('Fc' + a.join('-')) : '(まだ押していません)'} <span><button data-a="bxclr" class="mini">クリア</button> <button data-a="bxlat" class="mini">分からない → あとで入力</button></span></div></div>`;
+  const a = m.bxf || [], mode = m.bxr || '';
+  let h = `<div class="kindbox"><div class="gt">打者走者が安打より先へ進んだ理由<span class="must">必須</span></div><div class="kgrid">${[['fc', '送球の間', '野手選択'], ['e', '失策', '後逸・悪送球・捕球ミス']].map(([k, lab, sub]) => `<button data-a="bxr" data-k="${k}" class="${mode === k ? 'on' : ''}">${lab}<small>${sub}</small></button>`).join('')}</div></div>`;
+  if (!mode) return h;
+  const pad = `<div class="mpad">${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => `<button data-a="bxp" data-k="${k}">${k}<small>${POS[k]}</small></button>`).join('')}</div>`;
+  const tail = lab => `<div class="rfseq">${m.bxLater ? 'あとで入力' : lab} <span><button data-a="bxclr" class="mini">クリア</button> <button data-a="bxlat" class="mini">分からない → あとで入力</button></span></div>`;
+  if (mode === 'fc') return h + `<div class="rfbox"><div class="gt">送球にかかわった野手を順に押す<span class="must">必須</span><br><small>例:センター前安打で本塁へ送球(8-6-2)の間に二塁へ → 8-6-2。捕手から二塁へ送球があってセーフ → 8-6-2-4</small></div>${pad}${tail(a.length ? esc('Fc' + a.join('-')) : '(まだ押していません)')}</div>`;
+  const efs = m.bxefs || [], cand = [...new Set(a)];
+  h += `<div class="rfbox"><div class="gt">ボールにかかわった野手を順に押す<span class="must">必須</span><br><small>例:中堅手の後逸 → 8。左翼手の二塁への送球がそれた → 7-4。中継(8-6-2)で捕手が捕れなかった → 8-6-2</small></div>${pad}${tail(a.length ? esc(a.join('-')) : '(まだ押していません)')}`;
+  if (cand.length && !m.bxLater) {
+    h += `<div class="gt" style="margin-top:6px">失策した野手<small>(2人以上に失策が付くときは、両方押す)</small><span class="must">必須</span></div><div class="g">${cand.map(k => `<button data-a="bxef" data-k="${k}" class="${efs.includes(k) ? 'on' : ''}">${k} ${FIELDER_NAME[k]}</button>`).join('')}</div>`;
+    efs.forEach(f => { h += `<div class="rr"><div class="rlab">${f} ${FIELDER_NAME[f]}の失策</div><div class="ro">${[['throw', '送球がそれた'], ['catch', '捕れなかった・後逸']].map(([k, lab]) => `<button data-a="bxek" data-k="${f}:${k}" class="${bxKind(m, f) === k ? 'on' : ''}">${lab}</button>`).join('')}</div></div>`; });
+    if (efs.length) h += `<p class="note">スコアブック:${esc(bxeLab(bxeOf(m)))}(打者の安打は安打のまま。失策した野手に失策を付けます)</p>`;
+  }
+  return h + '</div>';
 }
 // 走者がいないときの安打:打者走者の行き先をこの画面で選ぶ(初期値は安打どおりなので、ふだんは押さなくてよい)
 function batterDestRow(m) {
@@ -2197,7 +2361,7 @@ function playEvent(m, moves) {
   if (m.result === 'GO' && bm && bm.to !== 'out') ev.bx = bm.to; // ゴロで走者がアウトの間に打者は一塁へ
   if (m.drop && m.drop.safe && bm && bm.to !== 1) ev.bx = bm.to; // 振り逃げの打者走者が2塁以上へ・走塁死
   if (m.rf && m.rf.length && needRF(m, moves)) ev.rf = m.rf.slice();
-  if (bm && bxNeeded(m, bm.to)) { if (m.bxLater) ev.later = true; else if (m.bxf && m.bxf.length) ev.bxf = m.bxf.slice(); }
+  if (bm && bxNeeded(m, bm.to)) { if (m.bxLater) ev.later = true; else if (m.bxr === 'e' && (m.bxefs || []).length) ev.bxe = bxeOf(m); else if (m.bxf && m.bxf.length) ev.bxf = m.bxf.slice(); }
   return ev;
 }
 // 打球の野手入力だけでは説明できない走者アウトがあるか
@@ -2325,9 +2489,28 @@ function buildRunEv(m) {
     let at = mv.from;
     return efs.map((f, k) => {
       const to = k < efs.length - 1 ? plan.stops[k] : mv.to;
-      const e = { t: 'runner', reason: 'E', grp, moves: [{ from: at, to }], err: { f, kind: (m.eks || {})[f] || 'catch', path: plan.subs[k], lab: plan.labels[k] } };
+      const e = { t: 'runner', reason: 'E', grp, moves: [{ from: at, to }], err: { f, kind: errKindOf(m, f), path: plan.subs[k] } };
       at = to; return e;
     });
+  }
+  if (m.reason === 'SB' && sbExtra(m)) { // 盗塁のあと、さらに失策・送球の間で進んだ(No.51):盗塁の出来事と、その先の出来事に分けてまとめて記録
+    if (sbExtra(m) === 'many') { m.err = '盗塁のあと、さらに先へ進んだ走者がいるときは、その走者だけを動かしてください'; return null; }
+    if (m.editIdx != null) { m.err = '直すときは、盗塁した塁までにしてください(その先は別に記録します)'; return null; }
+    if (!m.sbx) { m.err = '盗塁のあと、さらに進んだ理由(失策/送球の間)を選んでください'; return null; }
+    const mv = list[0], st = mv.from + 1;
+    const sb = { t: 'runner', reason: 'SB', moves: [{ from: mv.from, to: st }] };
+    if (m.sbx === 'FC') return [sb, { t: 'runner', reason: 'OT', moves: [{ from: st, to: mv.to }] }];
+    const efs = errFs(m);
+    if (!m.later && !(m.ep && m.ep.length)) { m.err = 'ボールにかかわった野手を押してください(分からないときは「あとで入力」)'; return null; }
+    if (!efs.length) {
+      if (m.later) return [sb, { t: 'runner', reason: 'E', moves: [{ from: st, to: mv.to }], err: { f: '', kind: '', path: [] }, later: true }];
+      m.err = '失策した野手を押してください'; return null;
+    }
+    if (mv.to - st < efs.length) { m.err = '失策の数だけ、盗塁した塁より先へ進めてください'; return null; }
+    const plan = multiPlan(m), evs = [sb];
+    let at = st;
+    efs.forEach((f, k) => { const to = k < efs.length - 1 ? plan.stops[k] : mv.to; evs.push({ t: 'runner', reason: 'E', moves: [{ from: at, to }], err: { f, kind: errKindOf(m, f), path: plan.subs[k] } }); at = to; });
+    return evs;
   }
   const ev = { t: 'runner', reason: m.reason, moves: list };
   if (errR) ev.err = m.later && !m.ef ? { f: '', kind: '', path: [] } : { f: m.ef, kind: m.ek || 'throw', path: (m.ep || []).slice() };
@@ -2335,13 +2518,13 @@ function buildRunEv(m) {
   if (list.some(x => x.to === 'out') && m.rf && m.rf.length) ev.fielders = m.rf.slice();
   return ev;
 }
-// 失策した野手を選ぶ(No.34):失策は1つのプレーで2人以上に付くことがある(例 2-E6-E5-2)。
+// 失策した野手を選ぶ(No.34):失策は1つのプレーで2人以上に付くことがある(例 2-6E-8E)。
 // 2人以上選んだら、失策ごとに種類と、その失策で走者がどこまで進んだかを選ぶ(盗塁は付けず、失策による進塁として記録)
 function errFs(m) { return m.efs && m.efs.length ? m.efs : m.ef ? [m.ef] : []; }
 function errPick(m, cand) {
-  const efs = errFs(m), multi = m.reason === 'E' && efs.length > 1;
+  const efs = errFs(m), multi = (m.reason === 'E' || m.reason === 'SB') && efs.length > 1;
   const kinds = [['throw', '送球がそれた', '悪送球'], ['catch', '捕れなかった', '捕球エラー']];
-  let h = `<div class="gt" style="margin-top:6px">失策した野手${m.reason === 'E' ? '<small>(2人以上に失策が付くときは、両方押す)</small>' : ''}</div><div class="g">${cand.map(k => `<button data-a="ref" data-k="${k}" class="${efs.includes(k) ? 'on' : ''}">${k} ${FIELDER_NAME[k]}</button>`).join('')}</div>`;
+  let h = `<div class="gt" style="margin-top:6px">失策した野手${m.reason === 'E' || m.reason === 'SB' ? '<small>(2人以上に失策が付くときは、両方押す)</small>' : ''}</div><div class="g">${cand.map(k => `<button data-a="ref" data-k="${k}" class="${efs.includes(k) ? 'on' : ''}">${k} ${FIELDER_NAME[k]}</button>`).join('')}</div>`;
   if (!multi) return h + `<div class="g2" style="margin-top:6px">${kinds.map(([k, lab, sub]) => `<button data-a="rek" data-k="${k}" class="${m.ek === k ? 'on' : ''}">${lab}<small>${sub}</small></button>`).join('')}</div>`;
   const mv = multiRunner(m), plan = multiPlan(m);
   efs.forEach((f, i) => {
@@ -2353,28 +2536,53 @@ function errPick(m, cand) {
     }
     h += '</div>';
   });
-  h += mv ? `<p class="note">スコアブック:${plan.labels.map((l, i) => `${i ? '、' : ''}${(plan.stops[i] || mv.to) === 4 ? '本塁' : (plan.stops[i] || mv.to) + '塁'}の欄に ${esc(l)}`).join('')}(打順を添える)。最後の行き先は下の走者の欄で選びます。</p>`
+  h += mv ? `<p class="note">スコアブック:${plan.labels.map((l, i) => `${i ? '、' : ''}${(plan.stops[i] || mv.to) === 4 ? '本塁' : (plan.stops[i] || mv.to) + '塁'}の欄に ${esc(l)}`).join('')}(打順を添える)。最後の行き先は走者の欄で選びます。</p>`
     : '<p class="note">失策が2つ以上のときは、下の走者の欄で、動いた走者を1人だけ選んでください(失策の数だけ塁を進んでいること)。ほかの走者の動きは「続けて進塁を記録」で入れます。</p>';
   return h;
 }
-// 失策が2つ以上のときに動いた走者(1人だけ。失策の数以上に進んでいること)
+// 失策が2つ以上のときに動いた走者(1人だけ。失策の数以上に進んでいること)。盗塁のあとの失策(No.51)は、盗塁した塁から数える
 function multiRunner(m) {
   const list = movesFromMap(m.moves, false).filter(x => x.to !== x.from);
-  if (list.length !== 1 || list[0].to === 'out' || list[0].to - list[0].from < errFs(m).length) return null;
-  return list[0];
+  if (list.length !== 1 || list[0].to === 'out') return null;
+  const from = m.reason === 'SB' ? list[0].from + 1 : list[0].from;
+  if (list[0].to - from < Math.max(1, errFs(m).length)) return null;
+  return { from, to: list[0].to };
 }
-// 失策ごとの、ボールの経路・止まった塁・スコアブックの書き方(例 2-E6 と E5-2)
+// 失策の種類:失策が1つなら「送球がそれた/捕れなかった」のボタン(m.ek)、2つ以上なら失策ごと(m.eks)
+function errKindOf(m, f) { return errFs(m).length > 1 ? ((m.eks || {})[f] || 'catch') : (m.ek || (m.eks || {})[f] || 'catch'); }
+// 盗塁で、盗塁した塁より先まで進んだ走者がいるか(No.51)。'many' は2人以上が先まで進んだ(1人ずつ記録してもらう)
+function sbExtra(m) {
+  if (m.reason !== 'SB') return '';
+  const list = movesFromMap(m.moves, false).filter(x => x.to !== x.from && x.to !== 'out');
+  const far = list.filter(x => x.to > x.from + 1);
+  if (!far.length) return '';
+  return list.length > 1 ? 'many' : 'one';
+}
+// 失策ごとの、ボールの経路・止まった塁・スコアブックの書き方(例 2-6E と 5E-2)
 function multiPlan(m) {
   const efs = errFs(m), path = m.ep || [], mv = multiRunner(m);
   const idx = []; let from = 0;
   efs.forEach(f => { let i = path.indexOf(f, from); if (i < 0) i = path.indexOf(f); idx.push(i); from = i + 1; });
   const subs = efs.map((f, k) => k < efs.length - 1 ? path.slice(k ? idx[k - 1] + 1 : 0, idx[k] + 1) : path.slice(k ? idx[k - 1] + 1 : 0));
-  const labels = subs.map((sp, k) => sp.map(x => x === efs[k] ? 'E' + x : x).join('-') || 'E' + efs[k]);
+  const labels = subs.map((sp, k) => errLab(sp, efs[k], errKindOf(m, efs[k])));
   const stops = efs.slice(0, -1).map((f, k) => {
     const v = (m.estop || [])[k], lo = mv ? (k ? null : mv.from) : 0;
     return v != null ? v : mv ? mv.from + k + 1 : null;
   });
   return { subs, labels, stops };
+}
+// 失策の入力(ボールにかかわった野手 → 失策した野手と種類)。走者の失策・牽制のエラー・盗塁のあとの失策(No.51)で使う
+function errBlock(m) {
+  let h = '';
+  // 失策した野手は必ず入力する(牽制のエラーも同じ形。例 投手→遊撃手 1-6 で、投手の悪送球なら ケ1E-6、遊撃手が捕れなければ ケ1-6E)
+  // ボールにかかわった野手を順に(例:捕手が三塁へ投げた = 2-5)。そのうえで失策した野手と種類
+  const ep = m.ep || [], cand = [...new Set(ep)];
+  h += `<div class="rfbox"><div class="gt">ボールにかかわった野手を順に押す<span class="must">必須</span> <small>${m.reason === 'POE' ? '例:投手が二塁へ牽制 → 投手→遊撃手(1-6)。捕手からの牽制は捕手から押す(例 2-5)' : m.reason === 'SB' ? '例:捕手の送球を遊撃手が捕れず、さらに中堅手も後逸 → 捕手→遊撃手→中堅手(2-6-8)' : '例:捕手が三塁へ投げて三塁手が捕れなかった → 捕手→三塁手(2-5)/捕手の送球がそれて外野へ → 捕手(2)'}</small></div>
+      <div class="mpad">${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => `<button data-a="rep" data-k="${k}">${k}<small>${POS[k]}</small></button>`).join('')}</div>
+      <div class="rfseq">${ep.length ? esc(ep.join('-')) : '(まだ押していません)'} <button data-a="repclr" class="mini">クリア</button></div>
+      ${m.later && !cand.length ? '<p class="note">野手は「あとで入力」にします(チームの失策には数えます)。</p>' : `<p class="note" style="text-align:right"><button data-a="rlater" class="mini">分からない → あとで入力</button></p>`}
+      ${cand.length ? errPick(m, cand) : ''}</div>`;
+  return h;
 }
 // 走者の動きの理由(見たままの言い方を小さく添える)
 const RUN_ADV = [['SB', '盗塁', ''], ['POE', '牽制のエラー', '牽制球がそれた・捕れなかった'], ['WP', '暴投', '投球がそれた'], ['PB', '捕逸', '捕手が捕れなかった'], ['BK', 'ボーク', '投手の反則'], ['OB', '走塁妨害', '野手が走者をじゃました'], ['E', '失策', ''], ['OT', 'その他進塁', '']];
@@ -2387,20 +2595,17 @@ function modalRun() {
   let h = `<h3>${fr ? esc(fr.label) + '(' + m.focus + '塁)' : m.editIdx != null ? '走者の記録を直す' : '走者の記録'}</h3>${m.oldText ? `<div class="tw">直す前:<b>${esc(m.oldText)}</b></div>` : ''}${m.chain && m.chain.length ? `<div class="pend"><div class="gt">ここまでの動き(確定でまとめて記録)</div>${m.chainText.map(t => `<div>${esc(t)}</div>`).join('')}</div><div class="gt" style="margin-top:6px">続きの動き</div>` : ''}
     <div class="gt">進塁の理由</div><div class="g2">${RUN_ADV.map(x => btn(x)).join('')}</div>
     <div class="gt" style="margin-top:8px">アウトの理由</div><div class="g2">${RUN_OUT.map(x => btn(x, 'ro2')).join('')}</div>`;
-  if (m.reason === 'E' || m.reason === 'POE') {
-    // 失策した野手は必ず入力する(牽制のエラーも同じ形。例 投手→遊撃手 1-6 で、投手の悪送球なら ケ1E-6、遊撃手が捕れなければ ケ1-6E)
-    // ボールにかかわった野手を順に(例:捕手が三塁へ投げた = 2-5)。そのうえで失策した野手と種類
-    const ep = m.ep || [], cand = [...new Set(ep)];
-    h += `<div class="rfbox"><div class="gt">ボールにかかわった野手を順に押す<span class="must">必須</span> <small>${m.reason === 'POE' ? '例:投手が二塁へ牽制 → 投手→遊撃手(1-6)。捕手からの牽制は捕手から押す(例 2-5)' : '例:捕手が三塁へ投げて三塁手が捕れなかった → 捕手→三塁手(2-5)/捕手の送球がそれて外野へ → 捕手(2)'}</small></div>
-      <div class="mpad">${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(k => `<button data-a="rep" data-k="${k}">${k}<small>${POS[k]}</small></button>`).join('')}</div>
-      <div class="rfseq">${ep.length ? esc(ep.join('-')) : '(まだ押していません)'} <button data-a="repclr" class="mini">クリア</button></div>
-      ${m.later && !cand.length ? '<p class="note">野手は「あとで入力」にします(チームの失策には数えます)。</p>' : `<p class="note" style="text-align:right"><button data-a="rlater" class="mini">分からない → あとで入力</button></p>`}
-      ${cand.length ? errPick(m, cand) : ''}</div>`;
-  }
+  if (m.reason === 'E' || m.reason === 'POE') h += errBlock(m);
   if (m.reason === 'POE') h += `<p class="note">スコアブックには ${esc(pickoffErrLabel({ f: m.ef, kind: m.ek, path: m.ep || [] }))}(打順) と書きます(送球がそれた = 投げた野手に E、捕れなかった = 受けた野手に E)。</p>`;
   if (m.reason === 'PO') h += `<p class="note">スコアブックには ケ+アウトにした野手(例 ケ1-3)と書きます。捕手からの牽制でアウトのときは、捕手から押してください(例 2-5)。</p>`;
   if (m.reason) h += runnerRows(false);
   else h += '<p class="note">理由を選ぶと、走者の行き先を選べます。</p>';
+  const sx = sbExtra(m);
+  if (sx === 'many') h += '<p class="err">盗塁のあと、さらに先の塁へ進んだ走者がいるときは、その走者だけを動かしてください(ほかの走者は「続けて進塁を記録」で入れます)。</p>';
+  if (sx === 'one') {
+    h += `<div class="kindbox"><div class="gt">盗塁のあと、さらに進んだ理由<span class="must">必須</span></div><div class="kgrid">${[['E', '失策', '送球・捕球のミス'], ['FC', '送球の間', '']].map(([k, lab, sub]) => `<button data-a="sbx" data-k="${k}" class="${m.sbx === k ? 'on' : ''}">${lab}${sub ? `<small>${sub}</small>` : ''}</button>`).join('')}</div><p class="note">盗塁は盗塁した塁までに付き、その先は${m.sbx === 'FC' ? '送球の間の進塁((打順))' : '失策による進塁'}として記録します。</p></div>`;
+    if (m.sbx === 'E') h += errBlock(m);
+  }
   if (m.reason && ADV_REASONS.includes(m.reason)) h += `<button data-a="rchain" style="width:100%;margin-top:8px">続けて進塁を記録(このあと送球の間・失策でさらに進んだ)</button>`;
   return h + `<p class="err">${esc(m.err || '')}</p>
     ${fr && !(m.chain && m.chain.length) ? `<button data-a="prun" data-k="${m.focus}" class="mini" style="margin-top:6px">代走を出す</button>` : ''}
@@ -2421,7 +2626,8 @@ function benchAvail(m, side) {
 function rosterOutside(m, side) {
   if (side !== store.game.ourSide) return [];
   const used = new Set(subWork(m, side).map(ident).concat(S.lineups[side].map(ident), gameBench(side).map(ident), [...goneIds(side)]));
-  return activePlayers().filter(p => !used.has('r:' + p.id)).map(p => ({ no: p.no, name: p.name, grade: p.grade, rid: p.id }));
+  const g = store.game; // 年代に合う選手だけ(No.45)
+  return activePlayers().filter(p => !used.has('r:' + p.id) && canPlay(p.grade, g.age, g.type)).map(p => ({ no: p.no, name: p.name, grade: p.grade, rid: p.id }));
 }
 // 攻撃中なら、打席の選手は代打、塁上の選手は代走
 function subRole(side, slot) {
@@ -2466,7 +2672,7 @@ function stagePos(m, pos) {
   setOver(m, side, slot, Object.assign({}, cur, { pos }));
   m.err = '';
 }
-// この試合に登録された選手(ベンチ入り25名の判定用)
+// この試合に登録された選手(ベンチ入り30名の判定用)
 function rosterCount(side) {
   const ids = new Set(store.game.lineups[side].map(ident).concat(gameBench(side).map(ident)));
   S.log.forEach(l => { if (l.type === 'sub' && l.side === side && l.newId) ids.add(l.newId); });
@@ -2628,6 +2834,32 @@ function fieldBenchDrop(m, j, pos) {
   m.sel = occ[0];
   if (stagePlayer(m, p)) m.sel = null;
 }
+// 押したときの振動(No.49):アプリのすべての操作で振動させる。Android などは navigator.vibrate(12ミリ秒)。
+// iPhone の Safari は vibrate に対応していないので、Safari 17.4 以降で使えるスイッチ(<input type=checkbox switch>)の
+// 振動を使う(隠したスイッチを、押した操作の中で切り替える)。どちらもできない端末では何もしない
+let hapticEl = null, hapticBusy = false;
+function haptic(ms) {
+  try { if (navigator.vibrate) { navigator.vibrate(ms || 12); return; } } catch (e) { }
+  if (!/iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) || !('ontouchend' in document)) return;
+  try {
+    if (!hapticEl) {
+      const l = document.createElement('label'); l.setAttribute('aria-hidden', 'true');
+      l.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', ''); i.tabIndex = -1;
+      l.appendChild(i); document.body.appendChild(l); hapticEl = l;
+    }
+    hapticBusy = true; hapticEl.click(); hapticBusy = false;
+  } catch (e) { hapticBusy = false; }
+}
+// 押せるもの(ボタン・選手の札・タブ・切り替えなど)を押したら振動。押せない(薄く表示した)ボタンでは振動しない。文字を入れる欄は対象外
+document.addEventListener('click', e => {
+  if (hapticBusy || (hapticEl && hapticEl.contains(e.target))) return;
+  if (fdragJust) return; // ドラッグは、つかんだとき・置いたときに振動させる
+  const el = e.target.closest && e.target.closest('button, [data-a], a[href], summary, label, select');
+  if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true' || el.classList.contains('disabled')) return;
+  if (el.tagName === 'LABEL' && !el.querySelector('input[type=checkbox], input[type=radio]')) return;
+  haptic(12);
+}, true);
 // ドラッグ(指・マウス)
 let fdrag = null, fdragJust = false; // fdragJust:ドラッグの直後に来る click を無視する
 document.addEventListener('pointerdown', e => {
@@ -2645,6 +2877,7 @@ document.addEventListener('pointermove', e => {
     fdrag.moved = true;
     const g = fdrag.el.cloneNode(true); g.classList.add('ghost'); g.style.width = fdrag.el.offsetWidth + 'px';
     document.body.appendChild(g); fdrag.ghost = g; fdrag.el.classList.add('dragging');
+    haptic(12); // 選手をつかんだ
   }
   e.preventDefault();
   fdrag.ghost.style.left = e.clientX + 'px'; fdrag.ghost.style.top = e.clientY + 'px';
@@ -2656,7 +2889,7 @@ function endDrag(e) {
   if (!fdrag || e.pointerId !== fdrag.id) return;
   const d = fdrag; fdrag = null;
   if (!d.moved) return; // タップは click で処理
-  d.ghost.remove(); fdragJust = true;
+  d.ghost.remove(); fdragJust = true; haptic(12); // 選手を置いた
   const z = document.elementFromPoint(e.clientX, e.clientY), zone = z && z.closest('[data-pz]');
   const m = ui.modal;
   if (ui.view === 'setup' && !m) { // スタメンの図
@@ -2689,6 +2922,7 @@ function modalGinfo() {
   return `<h3>試合の情報を直す</h3><form id="ginfo">
     <label>日付<input type="date" name="date" value="${esc(g.date || '')}"></label>
     <label>大会名<input name="tournament" value="${esc(g.tournament || '')}"></label>
+    <div class="gt">年代</div><div class="seg">${AGES.map(([k, lab, sub]) => `<label><input type="radio" name="age" value="${k}" ${(m.age || g.age || 'U12') === k ? 'checked' : ''}><span>${lab}<small>${sub}</small></span></label>`).join('')}</div>
     <div class="row2"><label>種別<select name="type">${types.concat(types.includes(g.type) ? [] : [g.type]).map(t => `<option ${t === g.type ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
     <label class="chk"><input type="checkbox" name="include" ${g.includeTotals ? 'checked' : ''}> 通算成績に含める</label></div>
     <div class="row2"><label>自チーム<input name="ourName" value="${esc(g.ourName)}"></label><label>相手チーム<input name="oppName" value="${esc(g.oppName)}"></label></div>
@@ -2717,6 +2951,13 @@ function saveGinfo() {
   const fix = p => { const n = ren[p.no + '\u0000' + (p.name || '')]; if (n) { p.no = n.no; p.name = n.name; } };
   g.lineups[os].forEach(fix); if (g.bench && g.bench[os]) g.bench[os].forEach(fix);
   r.events.forEach(e => { if (e.t === 'sub' && e.side === os && e.player) fix(e.player); });
+  // 年代(No.45):出場した自チームの選手が年代に合わなくなるときは、注意を出す(もう一度「保存」で保存)
+  const age = (f.querySelector('input[name=age]:checked') || {}).value || g.age || 'U12';
+  const ours = g.lineups[g.ourSide].concat(r.events.filter(e => e.t === 'sub' && e.side === g.ourSide && e.player).map(e => e.player));
+  const bad = [...new Set(ours.filter(p => !canPlay(p.grade, age, v('type'))).map(p => (p.grade ? p.grade + '年 ' : '') + (p.name || '#' + p.no)))];
+  m.age = age;
+  if (bad.length && m.ageAsk !== age + v('type')) { m.ageAsk = age + v('type'); m.err = bad.join('、') + ' が出場しています(' + ageLabel(age) + ' の条件に合いません)。それでもよければ、もう一度「保存」を押してください'; return render(); }
+  g.age = age;
   Object.assign(g, { date: v('date'), tournament: v('tournament'), type: v('type'), includeTotals: f.elements.include.checked, ourName: v('ourName') || g.ourName, oppName: v('oppName') || g.oppName,
     innings: inn, timeLimit: parseInt(v('timeLimit'), 10) || 0, tiebreak: f.elements.tiebreak.checked,
     limits: { upper: parseInt(v('limUp'), 10) || LIMIT_DEF.upper, lower: parseInt(v('limLo'), 10) || LIMIT_DEF.lower, weekUpper: parseInt(v('limWkUp'), 10) || LIMIT_DEF.weekUpper, weekLower: parseInt(v('limWkLo'), 10) || LIMIT_DEF.weekLower } });
@@ -2940,7 +3181,7 @@ function renderList() {
   list.forEach(r => {
     const g = r.game, res = gameResult(r), cur = store.game && store.game.id === r.id;
     h += `<div class="card gcard${cur ? ' cur' : ''}">
-      <div class="gtop"><b>${esc(g.date)}</b> <span class="note">${esc(g.tournament || '')} ${esc(g.type || '')}</span>${r.src === 'import' ? '<i class="bdg run">取り込み</i>' : ''}${cur ? '<i class="bdg">開いている試合</i>' : ''}</div>
+      <div class="gtop"><b>${esc(g.date)}</b> <span class="note">${esc(g.tournament || '')} ${esc(g.age ? ageLabel(g.age) + ' ' : '')}${esc(g.type || '')}</span>${r.src === 'import' ? '<i class="bdg run">取り込み</i>' : ''}${cur ? '<i class="bdg">開いている試合</i>' : ''}</div>
       <div class="gsc"><span class="wl w${res.wl || 'x'}">${res.wl || '記録中'}</span>${esc(g.ourName)} <b>${res.us} - ${res.them}</b> ${esc(g.oppName)}<small>${g.ourSide ? '(後攻)' : '(先攻)'}</small></div>
       <label class="chk2"><input type="checkbox" class="ginc" data-gi="${r.id}" ${g.includeTotals ? 'checked' : ''}> 通算成績に含める</label>
       <div class="gbtn"><button data-a="gopen" data-k="${r.id}" class="${cur ? '' : 'primary'}">${res.over ? '見る' : '続きを記録'}</button><button data-a="ginfo" data-k="${r.id}">試合の情報</button><button data-a="gexp" data-k="${r.id}">送る・保存</button><button data-a="gdel" data-k="${r.id}">削除</button></div></div>`;
@@ -3156,14 +3397,21 @@ document.addEventListener('click', e => {
       if (activePlayers().some(p => p.no === no)) { m.err = '#' + no + ' はもう名簿にいます。上の一覧から選んでください'; return render(); }
       if (!isAdmin() && !name) { m.err = '名前を入力してください(管理者が名簿の選手と結び付けるため)'; return render(); }
       const np = addRosterPlayer(no, name, grade);
+      if (!draftOK(np)) { m.err = grade + '年生は ' + ageLabel(ui.draft.age) + ' に出られません(名簿には追加しました)'; return render(); }
       pickPlayer(m.i, np.id); ui.modal = null; return render();
     }
-    case 'btog': { const d = ui.draft; d.bench = d.bench.includes(k) ? d.bench.filter(x => x !== k) : d.bench.concat(k); return render(); }
-    case 'ball': { const d = ui.draft, used = draftUsed(); d.bench = activePlayers().filter(p => !used.has(p.id)).map(p => p.id).slice(0, 25 - used.size); return render(); }
-    case 'bnone': ui.draft.bench = []; return render();
+    case 'btog': { // 押して外した選手は覚えておき、自動では控えに戻さない
+      const d = ui.draft; d.excl = d.excl || [];
+      if (d.bench.includes(k)) { d.bench = d.bench.filter(x => x !== k); if (!d.excl.includes(k)) d.excl.push(k); }
+      else { if (draftUsed().size + d.bench.length >= TEAM_MAX) { toastOnly('ベンチ入りは' + TEAM_MAX + '名までです'); return; } d.bench = d.bench.concat(k); d.excl = d.excl.filter(x => x !== k); }
+      return render();
+    }
+    case 'ball': { const d = ui.draft; d.excl = []; d.bench = []; return render(); }
+    case 'bnone': { const d = ui.draft, used = draftUsed(); d.bench = []; d.excl = activePlayers().map(p => p.id).filter(id => !used.has(id)); return render(); }
+    case 'age': { const d = ui.draft; d.age = k; draftDropIneligible(); const f = document.getElementById('setup'); if (f) f.querySelectorAll('[data-a=age]').forEach(b => b.classList.toggle('on', b.dataset.k === k)); return renderOurCard(); }
     case 'addb': {
       const tb = document.getElementById('bench-' + k), n = tb.querySelectorAll('tr').length;
-      if (n >= BENCH_MAX) { toastOnly('控えは16名(先発と合わせて25名)までです'); return; }
+      if (n >= BENCH_MAX) { toastOnly('控えは' + BENCH_MAX + '名(先発と合わせて' + TEAM_MAX + '名)までです'); return; }
       tb.insertAdjacentHTML('beforeend', benchRow(k, n)); tb.lastElementChild.querySelector('input').focus();
       return;
     }
@@ -3173,8 +3421,7 @@ document.addEventListener('click', e => {
     case 'tab': ui.tab = k; ui.exp = null; render(); window.scrollTo(0, 0); return;
     case 'p': {
       if (S.over || fieldPosProblem()) return;
-      // 押したことが分かるよう振動(できる端末だけ)。同じボタンを続けて押したら、そのたびに1球として記録する
-      try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) { }
+      // 同じボタンを続けて押したら、そのたびに1球として記録する(振動はすべての操作で共通。haptic)
       return push({ t: 'pitch', kind: k });
     }
     case 'tipsok': lsSet(TIPS_KEY, '1'); return render();
@@ -3234,9 +3481,12 @@ document.addEventListener('click', e => {
     case 'later': m.later = true; return fieldsNext(m); // 野手が分からない:印を付けて先へ進む(あとで「経過」や一覧から直す)
     case 'fnext': return fieldsNext(m);
     case 'bt': m.bt = k; return render();
-    case 'bdest': m.bdest = k === 'out' ? 'out' : parseInt(k, 10); if (k !== 'out') m.rf = []; if (!bxNeeded(m, m.bdest)) { m.bxf = []; m.bxLater = false; } return render();
+    case 'bdest': m.bdest = k === 'out' ? 'out' : parseInt(k, 10); if (k !== 'out') m.rf = []; if (!bxNeeded(m, m.bdest)) { m.bxf = []; m.bxLater = false; m.bxr = ''; m.bxefs = []; } return render();
     case 'bxp': m.bxf = (m.bxf || []).concat(k); m.bxLater = false; m.err = ''; return render();
-    case 'bxclr': m.bxf = []; m.bxLater = false; return render();
+    case 'bxclr': m.bxf = []; m.bxefs = []; m.bxLater = false; return render();
+    case 'bxr': m.bxr = k; m.bxLater = false; m.err = ''; if (k === 'fc') m.bxefs = []; return render();
+    case 'bxef': { const a = m.bxf || []; let e = (m.bxefs || []).slice(); e = e.includes(k) ? e.filter(x => x !== k) : e.concat(k); e.sort((x, y) => a.indexOf(x) - a.indexOf(y)); m.bxefs = e; m.err = ''; return render(); }
+    case 'bxek': { const [f, kk] = k.split(':'); (m.bxks = m.bxks || {})[f] = kk; return render(); }
     case 'bxlat': m.bxLater = true; m.bxf = []; m.err = ''; return render();
     case 'ef': m.ef = k; m.ek = (m.fielders.length > 1 && k === m.fielders[0] && m.fielders.lastIndexOf(k) === 0) ? 'throw' : 'catch'; return render();
     case 'ek': m.ek = k; return render();
@@ -3271,7 +3521,7 @@ document.addEventListener('click', e => {
     case 'mv': {
       const to = t.dataset.t === 'out' ? 'out' : parseInt(t.dataset.t, 10);
       m.moves[t.dataset.f] = to; m.err = '';
-      if (t.dataset.f === 'B' && m.kind === 'play' && !bxNeeded(m, to)) { m.bxf = []; m.bxLater = false; }
+      if (t.dataset.f === 'B' && m.kind === 'play' && !bxNeeded(m, to)) { m.bxf = []; m.bxLater = false; m.bxr = ''; m.bxefs = []; }
       if (m.kind === 'run' && to === 'out' && !(m.rf && m.rf.length)) { m.rf = runOutDefault(m.reason, parseInt(t.dataset.f, 10)); m.rfAuto = m.rf.length > 0; }
       if (m.kind === 'play' && m.result === 'GO' && bf(m) === null) {
         // ゴロ:走者をアウトにしたら、打者は一塁セーフに切り替える(打者の行き先を手で選んだあとは切り替えない)
@@ -3286,7 +3536,7 @@ document.addEventListener('click', e => {
     case 'pok': {
       const list = playMoves(m);
       if (list.find(x => x.from === 'B').to == null) { m.err = '打者の行き先を選んでください'; return render(); }
-      if (bxfMissing(m, list.find(x => x.from === 'B').to)) { m.err = '打者走者が進んだときの送球にかかわった野手を2人以上押してください(分からないときは「あとで入力」)'; return render(); }
+      if (bxfMissing(m, list.find(x => x.from === 'B').to)) { m.err = bxMsg(m, list.find(x => x.from === 'B').to); return render(); }
       const err = validateMoves(list); if (err) { m.err = err; return render(); }
       ui.modal = null; return commitPlay(m, playEvent(m, list));
     }
@@ -3312,14 +3562,15 @@ document.addEventListener('click', e => {
       return render();
     }
     case 'ref': { // 失策した野手(失策は2人以上でもよい。押すたびに入れる/外す)
-      if (m.reason !== 'E') { m.ef = k; m.efs = [k]; m.err = ''; return render(); }
+      if (m.reason !== 'E' && m.reason !== 'SB') { m.ef = k; m.efs = [k]; m.err = ''; return render(); }
       let efs = errFs(m).slice(); efs = efs.includes(k) ? efs.filter(x => x !== k) : efs.concat(k);
       const ep = m.ep || []; efs.sort((a, b) => ep.indexOf(a) - ep.indexOf(b));
-      m.efs = efs; m.ef = efs[0] || ''; m.eks = m.eks || {}; efs.forEach(f => { if (!m.eks[f]) m.eks[f] = 'catch'; }); m.estop = []; m.err = ''; return render();
+      m.efs = efs; m.ef = efs[0] || ''; m.eks = m.eks || {}; efs.forEach(f => { if (!m.eks[f]) m.eks[f] = 'catch'; }); if (efs.length === 1) m.ek = m.eks[efs[0]]; m.estop = []; m.err = ''; return render();
     }
     case 'reks': { const [f, kk] = k.split(':'); (m.eks = m.eks || {})[f] = kk; return render(); }
     case 'rstop': { const [i, b] = k.split(':').map(Number); (m.estop = m.estop || [])[i] = b; for (let j = i + 1; j < m.estop.length; j++) if (m.estop[j] != null && m.estop[j] <= b) m.estop[j] = null; return render(); }
-    case 'rek': m.ek = k; return render();
+    case 'rek': m.ek = k; if (m.ef) (m.eks = m.eks || {})[m.ef] = k; return render();
+    case 'sbx': m.sbx = k; m.err = ''; if (k === 'E' && !(m.ep && m.ep.length)) { const mv = movesFromMap(m.moves, false).find(x => x.to !== x.from); const st = mv ? mv.from + 1 : 2; m.ep = ({ 2: ['2', '6'], 3: ['2', '5'], 4: ['1', '2'] })[st] || ['2', '6']; m.ef = ''; m.efs = []; m.ek = ''; m.eks = {}; m.estop = []; } return render();
     case 'prun': { // 走者の画面から代走
       const r = S.bases[parseInt(k, 10) - 1]; if (!r) return;
       ui.modal = { kind: 'sub', side: S.half, sel: r.slot, overs: [{}, {}], manual: false }; return render();
@@ -3374,7 +3625,7 @@ document.addEventListener('click', e => {
     case 'froster': {
       const np = rosterOutside(m, m.side).find(p => p.rid === k); if (!np) return render();
       const known = rosterCount(m.side); Object.values(m.overs[m.side]).forEach(p => known.add(ident(p)));
-      if (!known.has(ident(np)) && known.size >= 25) { m.err = 'ベンチ入りは25名までです'; return render(); }
+      if (!known.has(ident(np)) && known.size >= TEAM_MAX) { m.err = 'ベンチ入りは' + TEAM_MAX + '名までです'; return render(); }
       if (stagePlayer(m, np)) m.sel = null; return render();
     }
     case 'fdesel': m.sel = null; m.err = ''; return render();
@@ -3417,8 +3668,9 @@ document.addEventListener('click', e => {
       if (!np) return render();
       const known = rosterCount(m.side);
       Object.values(m.overs[m.side]).forEach(p => known.add(ident(p)));
-      if (!np.isNew && !known.has(ident(np)) && known.size >= 25 || np.isNew && known.size >= 25) { m.err = 'ベンチ入りは25名までです'; return render(); }
+      if (!np.isNew && !known.has(ident(np)) && known.size >= TEAM_MAX || np.isNew && known.size >= TEAM_MAX) { m.err = 'ベンチ入りは' + TEAM_MAX + '名までです'; return render(); }
       if (np.isNew) { const rp2 = addRosterPlayer(np.no, np.name, np.grade); np = { no: rp2.no, name: rp2.name, grade: rp2.grade, rid: rp2.id }; }
+      if (m.side === store.game.ourSide && !canPlay(np.grade, store.game.age, store.game.type)) toastOnly('注意:' + np.grade + '年生は ' + ageLabel(store.game.age || 'U12') + ' の条件に合いません');
       if (stagePlayer(m, np)) { m.sel = null; m.manual = false; }
       return render();
     }
@@ -3475,6 +3727,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
+  if (t.name === 'type' && t.closest && t.closest('#setup') && ui.draft) { ui.draft.type = t.value; const inc = t.form && t.form.elements.include; if (inc) inc.checked = t.value !== 'その他'; draftDropIneligible(); return renderOurCard(); }
   if (t.classList && t.classList.contains('ginc')) { // 通算成績に含める
     const r = games[t.dataset.gi]; if (!r) return;
     r.game.includeTotals = t.checked; r.game.metaAt = Date.now(); putGame(r);
