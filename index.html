@@ -11,13 +11,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="スコアブック">
-<title>少年野球スコアブック(試作版 v0.12.0)</title>
-<meta name="app-version" content="0.12.0">
+<title>少年野球スコアブック(試作版 v0.13.0)</title>
+<meta name="app-version" content="0.13.0">
+<!-- 書体 LINE Seed JP(No.77)。漢字は分けて置き、画面で使う部分だけ読み込む。読み込めないときは端末の書体 -->
+<link rel="preload" href="fonts/lsjp-400-base.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/lsjp-700-base.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root{--bg:#f4f6f3;--bg2:#fff;--ink:#1d2a22;--sub:#5f6f65;--line:#c9d3cc;--pri:#1f6f43;--run:#e8902a;--ball:#2f8f4f;--str:#d6a400;--out:#c8443a;--card:#fff}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-text-size-adjust:100%}
-body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(70px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"LSJP",-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;-webkit-text-size-adjust:100%}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(52px + env(safe-area-inset-bottom)) env(safe-area-inset-left)}
 button{font:inherit;color:inherit;border:1px solid var(--line);background:var(--bg2);border-radius:10px;padding:10px 8px;cursor:pointer;touch-action:manipulation}
 button:active{transform:scale(.97)}
 button:active:not(:disabled),[data-a]:active{filter:brightness(.9)} /* 押したことが見て分かるように(iPhone で振動しないときも) */
@@ -155,35 +159,45 @@ button.endb{border-color:var(--out);color:var(--out);background:#fff;font-weight
 .rec.m5 .top1 .tb{display:flex;align-items:center;gap:3px;flex-shrink:0}
 .rec.m5 .top1 .tb button.mini{font-size:11.5px;padding:4px 6px;min-height:30px}
 .timer.late{background:var(--out);color:#fff;border-radius:6px;padding:1px 5px;font-weight:700}
-.rec.m5 table.sb{margin:4px 0}
-.cntrow{display:flex;align-items:center;gap:8px;margin:2px 0 4px}
+.rec.m5 table.sb{margin:3px 0}
+.cntrow{display:flex;align-items:center;gap:8px;margin:5px 2px 4px;min-height:20px}
 .cnt{display:flex;gap:16px;align-items:center;flex:1}
 .cnt span{display:flex;align-items:center;gap:4px}.cnt b{width:14px;font-weight:800}
 .cnt i{width:18px;height:18px;border-radius:50%;background:#e3e8e4;display:inline-block}
 .cnt i.b{background:var(--ball)}.cnt i.s{background:var(--str)}.cnt i.o{background:var(--out)}
-.undo1{min-height:44px;padding:6px 10px;font-size:14px;font-weight:700;white-space:nowrap}
-.field2{display:flex;gap:6px;align-items:stretch;background:var(--card);border-radius:12px;padding:2px 6px}
-.field2 .diaw{width:62%;flex-shrink:0;display:flex;align-items:center}.field2 .diaw .dia{width:100%;max-width:none}
-.subg{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:5px;align-content:center}
-.subg button{min-height:48px;padding:4px 2px;font-size:13px;font-weight:700;line-height:1.2}
+.undo1{min-height:40px;padding:4px 10px;font-size:14px;font-weight:700;white-space:nowrap}
+.field2{display:flex;gap:6px;align-items:stretch;background:var(--card);border-radius:12px;padding:4px 6px}
+.field2 .diaw{width:58%;flex-shrink:0;display:flex;align-items:center}.field2 .diaw .dia{width:100%;max-width:none}
+.subg{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:center}
+.subg button{min-height:54px;padding:4px 2px;font-size:13px;font-weight:700;line-height:1.2}
 .subg button.sm{font-size:12px;white-space:nowrap;letter-spacing:-.06em}
 @media (max-width:400px){.subg button.sm{font-size:11px}}
-.pit2{background:var(--card);border-radius:12px;padding:5px 10px;margin:6px 0 4px;border-left:6px solid var(--pri)}
-.pit2 .r1{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.pit2{background:var(--card);border-radius:12px;padding:7px 10px;margin:6px 0 5px;border-left:6px solid var(--pri)}
+.pit2 .r1{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:28px}
 .pit2 .pn{font-size:16px;font-weight:700}.pit2 .pn small{font-weight:400;color:var(--sub);font-size:12px}
 .pit2 .pc{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}.pit2 .pc small{font-size:12px;font-weight:400;color:var(--sub)}
-.pit2 .psum{font-size:14.5px;font-weight:600;color:#33443a;margin-top:1px}
+.pit2 .psum{font-size:15px;font-weight:700;color:#33443a;margin-top:5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pit2.warn{border-left-color:var(--str);background:#fff8dc}.pit2.warn .pc{color:#8a6a00}
 .pit2.over{border-left-color:var(--out);background:#ffe6e3}.pit2.over .pc{color:var(--out)}
-.tap{cursor:pointer}.tap u{text-decoration-thickness:1.5px;text-underline-offset:3px}.sw{font-style:normal;color:var(--pri);font-size:13px}
-.bat2{display:flex;gap:6px;background:var(--card);border-radius:12px;padding:5px 10px;margin:0 0 4px}
+.tap{cursor:pointer}.tap u{text-decoration-thickness:1.5px;text-underline-offset:2px}.sw{font-style:normal;color:var(--pri);font-size:13px}
+.bat2{display:flex;gap:6px;background:var(--card);border-radius:12px;padding:8px 10px;margin:0;min-height:66px}
 .bat2 .bl{flex:1;min-width:0}.bat2 .br{width:38%;flex-shrink:0;border-left:1px solid var(--line);padding-left:6px}
 .bat2 .bn{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bat2 .ord{color:var(--sub);font-size:13px;font-weight:400}.bat2 .pos{color:var(--sub);font-size:12px;font-weight:400}
-.pseqw{display:flex;align-items:center;gap:4px;min-height:24px}
+.pseqw{display:flex;align-items:center;gap:4px;min-height:26px;margin-top:2px}
 .pseqs-in{max-width:230px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}.pseqs-in::-webkit-scrollbar{display:none}
 .pseqw .more{font-size:11px;color:var(--sub);white-space:nowrap}
 .bat2 .lbl{font-size:11px;color:var(--sub)}.bat2 .tdy{display:flex;flex-wrap:wrap;gap:2px}.bat2 .tdy .chip{min-width:0;padding:3px 5px;margin:0;font-size:12px}
-.rec.m5 .pad{margin:6px 0}
+/* 結果・投球のボタン(No.79):4列×6段。結果の4段の下に列の見出しと境界線、その下に投球の2段 */
+.rgrid2{display:grid;grid-template-columns:repeat(4,1fr);gap:7px 6px;margin:2px 0 8px}
+.rgrid2.dis{opacity:.35;pointer-events:none}
+.rgrid2 .rb,.rgrid2 .pb{min-height:46px;padding:4px 2px;font-size:15px;font-weight:800;line-height:1.1;border-width:1.5px;letter-spacing:-.3px;white-space:nowrap}
+.rgrid2 .pb{border-width:2px}
+.rgrid2 small{display:block;font-size:9.5px;font-weight:400;margin-top:1px;opacity:.85;letter-spacing:0}
+.rgrid2 .rb:disabled,.rgrid2 .pb:disabled{opacity:.25}
+.rgrid2 .bfb{font-size:12.5px;letter-spacing:-.6px}
+.rgrid2 .rh2{text-align:center;font-size:10.5px;font-weight:700;color:var(--sub);line-height:1;margin:-4px 0 0;padding-bottom:4px;border-bottom:1px solid #c9d3cc}
+.c-sac{background:#e8f0fb;border-color:#5a86c8;color:#2a5597}
+.c-und{background:#eef0ef;border-color:#9aa4a0;color:#4a5550;font-size:13.5px!important}
 .ovl{position:fixed;left:8px;right:8px;top:calc(6px + env(safe-area-inset-top));z-index:20;display:flex;flex-direction:column;gap:6px;max-width:520px;margin:0 auto}
 .ovl>*{box-shadow:0 4px 14px #0004;margin:0!important;background:#fff}
 .ovl .savehint{background:#eef7f0}
@@ -379,6 +393,7 @@ table.palist td.lu,table.palist th.lu{min-width:0;position:sticky;left:0;backgro
 .chip{white-space:nowrap}
 button.chip{border:0;font:inherit;font-weight:800;font-size:13px;padding:6px 6px 4px;cursor:pointer}
 .pseq2{display:flex;justify-content:center;gap:2px;margin-top:4px;padding:2px 3px;background:#fff;border-radius:4px;line-height:0}
+.pseq2 .psl{font-size:10px;line-height:10px;font-weight:800;color:var(--ink)}.pseq2 .psl.tk{font-size:9px;margin-left:-1px}
 svg.ps{display:inline-block;vertical-align:middle;flex:none}
 .pk{display:inline-block;font-style:normal;font-size:9px;font-weight:700;width:14px;height:14px;line-height:14px;border-radius:3px;margin:0 1px;background:#fff;color:#333;text-align:center}
 .pk.B{background:#e3f3e7;color:#1f6f43}.pk.C{background:#fff6d6;color:#8a6a00;outline:1px solid #d6a400}.pk.S{background:#d6a400;color:#fff}.pk.F{background:#eee;color:#555}.pk.X{background:#333;color:#fff}.pk.HBP{background:#c8443a;color:#fff}
@@ -434,7 +449,7 @@ button.chip .mks{display:block;line-height:1;margin-top:2px}
 <script>
 // ===== アプリの版(セマンティック バージョニング:0.y.z は試作の段階。機能を足した・変えたら y、直しだけなら z を上げる) =====
 // 画面(一覧の下)・書き出したファイル(appVersion)・ブラウザのコンソールに同じ値を出す。変更内容は CHANGELOG.md
-const APP_VERSION = '0.12.0';
+const APP_VERSION = '0.13.0';
 // ===== 記録エンジン:出来事の記録(events)から試合の状況と成績を計算する =====
 const POS = { '1': '投', '2': '捕', '3': '一', '4': '二', '5': '三', '6': '遊', '7': '左', '8': '中', '9': '右' };
 const POS_FULL = { '1': '投手', '2': '捕手', '3': '一塁', '4': '二塁', '5': '三塁', '6': '遊撃', '7': '左翼', '8': '中堅', '9': '右翼' };
@@ -461,7 +476,7 @@ const RESULTS = {
   K: { label: '空振り三振', ab: 1 },
   KC: { label: '見逃し三振', ab: 1 },
 };
-const RUN_REASONS = { SB: '盗塁', WP: '暴投', PB: '捕逸', BK: 'ボーク', CS: '盗塁死', PO: 'けん制死', RO: '走塁死', OT: 'その他', E: '失策', POE: '牽制のエラー', OB: '走塁妨害' };
+const RUN_REASONS = { SB: '盗塁', WP: '暴投', PB: '捕逸', BK: 'ボーク', CS: '盗塁死', PO: 'けん制死', RO: '走塁死', OT: 'その他', E: '失策', POE: '牽制のエラー', PK: '牽制', OB: '走塁妨害' };
 // 外野への安打の位置(守備番号とは別に持つ)。line:線際 over:頭上を越えた 78:左中間 89:右中間
 const OF_NAME = { '7': 'レフト', '8': 'センター', '9': 'ライト' };
 function hitPlace(f, loc) {
@@ -903,7 +918,7 @@ function applyEvent(s, ev, game) {
     const pit = currentPitcher(s);
     batStat(s, bs, b.p);
     if (!s.pa) s.pa = { pitches: [], seq: [], start: snap(s) };
-    s.pa.seq.push({ k: 'p', kind: ev.kind, before: snap(s) });
+    s.pa.seq.push({ k: 'p', kind: ev.kind, wpb: ev.wpb || undefined, before: snap(s) }); // wpb:暴投・捕逸の球(No.81)
     s.pa.pitches.push(ev.kind);
     if (pit) {
       const k = pkey(pit.side, pit.p);
@@ -954,13 +969,17 @@ function applyEvent(s, ev, game) {
     if (errF) { const st = fldStat(s, fs, errF); if (st) st.E++; }
     // 捕逸・失策で入った得点は自責点にならない(簡易判定)
     // スコアブックの塁の欄:理由の記号に、そのとき打席にいた打者の打順を添える(例 S(3) WP(3) PB(3) 2-5E(3))
-    const bn = '(' + (currentBatter(s).slot + 1) + ')';
-    const CAUSE = { SB: 'S', WP: 'WP', PB: 'PB', BK: 'Bk', CS: '', PO: '', RO: '', OT: '', E: ev.err && ev.err.f ? errLab(ev.err.path, ev.err.f, ev.err.kind) : 'E', POE: pickoffErrLabel(ev.err), OB: 'Ob' };
-    const cause = ['CS', 'PO', 'RO'].includes(ev.reason) ? '' : CAUSE[ev.reason] + bn;
+    // 四球になった球の暴投・捕逸(No.81)は、四球の打者の打順(ev.bn)を添える
+    const bn = '(' + ((ev.bn != null ? ev.bn : currentBatter(s).slot) + 1) + ')';
+    // 盗塁・盗塁死の通し番号(No.82):その回の攻撃の中で何回目か。「’」をその数だけ付ける(重盗は1つ)
+    const sbn = ev.reason === 'SB' || ev.reason === 'CS' ? s.log.filter(l => l.type === 'run' && l.inning === s.inning && l.half === s.half && (l.reason === 'SB' || l.reason === 'CS')).length + 1 : 0;
+    const tk = '’'.repeat(sbn);
+    const CAUSE = { SB: 'S' + tk, WP: 'WP', PB: 'PB', BK: 'Bk', CS: '', PO: '', RO: '', OT: '', E: ev.err && ev.err.f ? errLab(ev.err.path, ev.err.f, ev.err.kind) : 'E', POE: pickoffErrLabel(ev.err), OB: 'Ob' };
+    const cause = ['CS', 'PO', 'RO', 'PK'].includes(ev.reason) ? '' : CAUSE[ev.reason] + bn;
     const outLabels = {};
     // 走者アウトの守備番号:盗塁死は CS 2-6、牽制死は ケ1-3(3)(打順を添える。捕手からの牽制も ケ2-5(3))
     const fseq = ev.fielders && ev.fielders.length ? ev.fielders.join('-') : '';
-    for (const mv of ev.moves) if (mv.to === 'out') outLabels[mv.from] = ev.reason === 'CS' ? 'CS' + (fseq ? ' ' + fseq : '') : ev.reason === 'PO' ? 'ケ' + fseq + bn : fseq;
+    for (const mv of ev.moves) if (mv.to === 'out') outLabels[mv.from] = ev.reason === 'CS' ? 'CS' + tk + (fseq ? ' ' + fseq : '') : ev.reason === 'PO' ? 'ケ' + fseq + bn : fseq;
     const res = applyMoves(s, ev.moves, null, pit, { unearned: ev.reason === 'PB' || !!errF || ev.reason === 'E' || ev.reason === 'OB', cause, outLabels, reason: ev.reason, play: ev.grp ? 'g' + ev.grp : 'i' + s.curIdx });
     if (out) creditOuts(s, fs, ev.fielders, out);
     const desc = ev.moves.filter(m => m.to !== m.from).map(m => {
@@ -971,11 +990,16 @@ function applyEvent(s, ev, game) {
     const fl = out && ev.fielders && ev.fielders.length ? '(' + ev.fielders.join('-') + ')' : '';
     const ep = ev.err && ev.err.path && ev.err.path.length > 1 ? ev.err.path.join('-') + ' ' : '';
     const et = ev.reason === 'POE' && !(ev.err && ev.err.f) ? (ev.err ? '' : '(投手の牽制球がそれた)') : (ev.reason === 'E' || ev.reason === 'POE') && ev.err && ev.err.f ? '(' + ep + FIELDER_NAME[ev.err.f] + 'の' + (ev.err.kind === 'throw' ? '悪送球' : '捕球エラー') + ')' : '';
-    const rtext = RUN_REASONS[ev.reason] + et + ':' + desc + fl;
+    const rtext = ev.reason === 'PK' ? '牽制:' + (ev.base || '?') + '塁へ(セーフ)' : RUN_REASONS[ev.reason] + et + ':' + desc + fl;
     s.log.push({ type: 'run', inning: s.inning, half: s.half, reason: ev.reason, text: rtext + (ev.later ? '【あとで入力】' : ''), runs: res.runs, idx: s.curIdx, later: !!ev.later });
     // 打席の途中の走者の動き(盗塁など)を、その打席の経過に入れる
-    if (!s.pa) s.pa = { pitches: [], seq: [], start: runBefore };
-    s.pa.seq.push({ k: 'r', reason: ev.reason, text: rtext, out: out > 0, runs: res.runs, before: runBefore, after: snap(s) });
+    const item = { k: 'r', reason: ev.reason, text: rtext, out: out > 0, runs: res.runs, sbn: sbn || undefined, before: runBefore, after: snap(s) };
+    const prevPa = ev.attach === 'prev' ? [...s.log].reverse().find(l => l.type === 'pa') : null;
+    if (prevPa) prevPa.seq.push(item); // 四球になった球の暴投・捕逸は、四球の打者の打席の経過に入れる(No.81)
+    else {
+      if (!s.pa) s.pa = { pitches: [], seq: [], start: runBefore };
+      s.pa.seq.push(item);
+    }
     checkHalf(s, game);
   } else if (ev.t === 'sub') {
     const old = s.lineups[ev.side][ev.slot];
@@ -1036,7 +1060,7 @@ function batterNote(l) {
   const seq = f.join('-');
   switch (l.result) {
     case 'H1': case 'H2': case 'H3': case 'HR': {
-      if (l.result === 'H1' && l.hk === 'BU') return { t: p ? 'BH' + digFW(p) : 'BH', c: 'hit' }; // バント安打:ＢＨ＋転がった方向の守備位置(全角)(No.47)
+      if (l.result === 'H1' && l.hk === 'BU') return { t: p ? 'BH' + p : 'BH', c: 'hit' }; // バント安打:BH+転がった方向の守備位置(No.47。No.78 で半角)
       // 外野の位置:番号のまわりの点(上=頭上を越えた、左右=線際、2つの番号の間=左中間・右中間)
       if (l.loc === '78' || l.loc === '89') return { t: l.loc, c: 'hit', d: 'gap' };
       if (l.loc === 'over') return { t: p, c: 'hit', d: 'over' };
@@ -1063,7 +1087,7 @@ function batterNote(l) {
       return { t: ef + 'E', c: '', b: 'G', bi: 0 };
     }
     case 'FC': return { t: 'Fc', c: '' };
-    case 'CI': return { t: digFW(p || '2') + 'IF', c: '' }; // 打撃妨害:妨害した野手の番号(全角)+ＩＦ(例 ２ＩＦ)(No.61)
+    case 'CI': return { t: (p || '2') + 'IF', c: '' }; // 打撃妨害:妨害した野手の番号+IF(例 2IF)(No.61。No.78 で半角)
     case 'INT': return { t: 'IP', c: '' };                    // 守備妨害:ＩＰ(No.61)
     case 'BB': return { t: 'B', c: 'bb' };
     case 'HBP': return { t: 'HP', c: 'bb' };
@@ -1093,12 +1117,19 @@ function setBookGeom(k) {
 setBookGeom('l');
 const COLOR = { hit: '#d0342c', bb: '#1f5fbf', '': '#1d2a22' };
 const MIN_FS = 12; // スコアブックの中のいちばん小さい文字
-// 文字の幅(px):半角は約0.62、全角は1
-function txtPx(t, fs) { let w = 0; for (const c of String(t)) w += /[\x20-\x7e]/.test(c) ? 0.62 : 1; return w * fs; }
-// 英字は全角で書く(No.42)。数字・かっこ・ハイフンは半角のまま。1文字だけの数字は全角で大きく(No.39)
-const KEEP_HALF = new Set(['S.O.']); // 全角にしない記号(空振り三振は半角の S.O.。No.71)
-function toFW(t) { return String(t).replace(/[A-Za-z]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0)); }
-function digFW(t) { return String(t).replace(/\d/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0)); }
+// 文字の幅(px)。書体 LINE Seed JP の太字の幅に合わせた見積もり(No.77):数字 0.72、英大文字 0.82、英小文字 0.66、- 0.52、( ) 0.46、. 0.34、全角 1
+function chW(c) {
+  if (/[0-9]/.test(c)) return 0.72;
+  if (/[A-Z]/.test(c)) return c === 'I' ? 0.4 : c === 'W' || c === 'M' ? 1.2 : 0.82;
+  if (/[a-z]/.test(c)) return 0.66;
+  if (c === '-') return 0.52;
+  if (c === '(' || c === ')') return 0.46;
+  if (c === '.' || c === "'" || c === ',' || c === '’') return 0.34;
+  if (c === ' ') return 0.3;
+  return /[\x20-\x7e]/.test(c) ? 0.62 : 1;
+}
+function txtPx(t, fs) { let w = 0; for (const c of String(t)) w += chW(c); return w * fs; }
+// 英数字・記号はすべて半角で書く(No.78。書体 LINE Seed JP は半角でも細くなりすぎない)。1文字だけの数字・英字は大きく(19px)書く
 // 2行に分けるときの分け方:Fc|8-6-2-4、ケ1E-6|(3)、2-6E|(3)、CS|2-6、K|2-3、6-4-3|DP、BH|5。それでも長いときは「-」の位置で分ける
 function split2(t) {
   let m;
@@ -1113,7 +1144,7 @@ function split2(t) {
 }
 // マスの四隅の欄に文字を書く(No.42)。q:0 本塁(左下) 1 一塁(右下) 2 二塁(右上) 3 三塁(左上)。
 // 文字はマスの角に寄せる(右の欄は右寄せ、左の欄は左寄せ。下の欄は下から、上の欄は上から)。ダイヤモンドの線にかからない幅に収める。
-// 収まらないときは No.39 の順で詰める:英字を半角に戻す → 2行に分ける → 小さく(12px まで)
+// 収まらないときは 2行に分ける → 小さく(12px まで)の順で詰める
 // wide:ダイヤモンドの外の帯(上下)で使える幅。となりの欄の文字が短ければ、1行を横に長く書いてよい
 function qLayout(q, t, size, one, wide, pad) {
   const left = q === 0 || q === 3, top = q === 2 || q === 3;
@@ -1135,11 +1166,10 @@ function qLayout(q, t, size, one, wide, pad) {
       return w <= (n === 1 ? stripW : edgeW + 6);
     });
   };
-  const fw = KEEP_HALF.has(t) ? t : toFW(t);
   for (let fs = Math.max(MIN_FS, base); fs >= MIN_FS; fs--) {
-    const cands = [[fw], [t]];
+    const cands = [[t]];
     const sp = split2(t);
-    if (sp) cands.push(sp.map(toFW), sp);
+    if (sp) cands.push(sp);
     for (const c of cands) if (fits(c, fs)) return { lines: c, fs };
   }
   const sp = split2(t);
@@ -1148,8 +1178,7 @@ function qLayout(q, t, size, one, wide, pad) {
 function qText(q, t, c, size, d, bt, bi, wide, padR) {
   const col = COLOR[c || ''];
   t = String(t);
-  const one = /^\d$/.test(t) && !size;
-  if (one) t = digFW(t);
+  const one = /^[0-9A-Za-z]$/.test(t) && !size;
   // 飾りの分の余白(△ 犠飛・□ 犠打・線際の点・長打の点)
   const pad = { l: d === 'lineL' ? 7 : d === 'tri' ? 8 : d === 'box' ? 4 : 0, r: (d === 'lineR' ? 7 : d === 'tri' ? 8 : d === 'box' ? 4 : d === 'dot' ? 6 : 0) + (padR || 0), b: d === 'tri' || d === 'box' || d === 'ul' ? 4 : 0 };
   const { lines, fs } = qLayout(q, t, size, one, wide, pad);
@@ -1193,7 +1222,7 @@ function infHit(p) {
   const ax = mx - ux * hl, ay = my - uy * hl, bx = mx + ux * hl, by = my + uy * hl;
   const tx = mx + nx * 8.5, ty = my + ny * 8.5, fs = 14;
   return `<path d="M${ax.toFixed(1)} ${ay.toFixed(1)} Q${(mx + nx * k).toFixed(1)} ${(my + ny * k).toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)}" fill="none" stroke="${col}" stroke-width="1.5"/>`
-    + `<text x="${tx.toFixed(1)}" y="${(ty + fs * 0.36).toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="${col}">${esc(digFW(p))}</text>`;
+    + `<text x="${tx.toFixed(1)}" y="${(ty + fs * 0.36).toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="${col}">${esc(String(p))}</text>`;
 }
 // 投球の印(● ボール × 見逃し ×に横線 空振り △ ファウル △に点 バントファウル)。直径 7px ほど
 // 投球欄の印(No.61):・ボール ○見逃し ×空振り ｖファウル △バントファウル(黒。端末の文字に左右されないよう図で描く)
@@ -1214,12 +1243,12 @@ function cellSvg(l, isLast) {
   const note = batterNote(l);
   const [cx, cy] = [BXY[0][0], BXY[1][1]];
   let h = `<svg viewBox="0 0 ${CW} ${CH}" width="${CW}" height="${CH}" class="cell">`;
-  // 投球欄(左の縦列)。10球を超えたら2列に並べる
-  const ps = (l.pitches || []).filter(k => k !== 'X' && k !== 'HBP');
+  // 投球欄(左の縦列)。10段を超えたら2列に並べる。牽制の「ケ」「<」も1段、暴投 W・捕逸 P は球の印の代わり、盗塁の ’ は球の右肩(No.80〜82)
+  const ps = seqTokens(l.seq && l.seq.length ? l.seq : (l.pitches || []).map(k => ({ k: 'p', kind: k })));
   h += `<line x1="${PW}" y1="0" x2="${PW}" y2="${CH}" stroke="#b9c7bd" stroke-width="1"/>`;
   const two = ps.length > 10, rows = two ? Math.ceil(ps.length / 2) : ps.length;
   const step = rows > 1 ? Math.min(8.8, (CH - 12) / (rows - 1)) : 0;
-  ps.forEach((k, i) => { const col = two ? (i < rows ? 0 : 1) : 0, row = two ? i % rows : i; h += pitchMark(k, two ? (col ? 11.8 : 4.4) : PW / 2, 6.5 + row * step); });
+  ps.forEach((tk, i) => { const col = two ? (i < rows ? 0 : 1) : 0, row = two ? i % rows : i; h += tokMark(tk, two ? (col ? 11.8 : 4.4) : PW / 2 - (tk.ticks ? 1.5 : 0), 6.5 + row * step); });
   // ダイヤモンド(少し濃く。屋外でも見えるように)
   h += `<polygon points="${BXY.map(p => p.join(',')).join(' ')}" fill="none" stroke="#b9c7bd" stroke-width="1.2"/>`;
   // 線を引くのは打者自身の安打の分だけ(赤)。それ以外の進塁は線を引かず、到達した塁の欄に文字だけ書く
@@ -1276,7 +1305,7 @@ function cellSvg(l, isLast) {
   if (meta.out && meta.out.from > 0 && meta.out.label) items.push({ q: (meta.out.from + 1) % 4, t: meta.out.label, size: 12 });
   // 四隅の欄の文字:となりの欄(左右)が空いていれば、帯の中で横に長く書いてよい
   const NB = { 0: 1, 1: 0, 2: 3, 3: 2 }, half = (CW - PW) / 2;
-  const estW = it => { const t = String(it.t); return /^\d$/.test(t) && !it.size ? 21 : Math.min(half, txtPx(toFW(t), it.size || 12) + (it.d ? 8 : 0)); };
+  const estW = it => { const t = String(it.t); return /^[0-9A-Za-z]$/.test(t) && !it.size ? 21 : Math.min(half, txtPx(t, it.size || 12) + (it.d ? 8 : 0)); };
   items.forEach(it => {
     const nb = items.filter(x => x.q === NB[it.q]);
     const wide = CW - PW - 6 - (nb.length ? Math.max(...nb.map(estW)) + 6 : 0) - (isLast && it.q !== 1 && NB[it.q] === 1 ? 9 : 0);
@@ -1373,13 +1402,13 @@ function renderBook(side) {
     h += '</tr>';
   });
   h += '</tbody></table></div>';
-  // 記号の説明(No.41):記号の意味だけ。英字はマスと同じく全角、数字・かっこは半角
+  // 記号の説明(No.41):記号の意味だけ。英数字は半角(No.78)。ファウルの ｖ だけは ○×△ と幅をそろえて全角
   const L = (k, v, c) => `<span class="lgi"><i class="${c || ''}">${k}</i>${v}</span>`;
   h += `<div class="legend">
-    <div><b>投球</b>${L('・', 'ボール')}${L('○', '見逃し')}${L('×', '空振り')}${L('ｖ', 'ファウル')}${L('△', 'バントファウル')}</div>
-    <div><b>打者</b>${L('赤い線', '安打', 'r')}${L('数字', '打球の方向(守備番号)')}${L('∪', 'ゴロ')}${L('⌒', 'フライ')}${L('ー', 'ライナー')}${L('・', '長打', 'r')}${L('線と曲線で囲んだ数字', '内野安打', 'r')}${L('数字の下線', '強襲安打', 'r')}${L('ＢＨ５', 'バント安打(数字は打球の方向)', 'r')}${L('Ｂ', '四球', 'bl')}${L('ＨＰ', '死球', 'bl')}${L('Ｋ', '見逃し三振')}${L('S.O.', '空振り三振')}${L('□', '犠打', 'bl')}${L('△', '犠飛', 'bl')}${L('２Ｆ', 'ファウルフライ')}${L('５Ｅ', '失策(数字は失策した野手)')}${L('６Ｅ-3', '送球の失策')}${L('５-3Ｅ', '捕球の失策')}${L('Ｆｃ', '野選')}${L('ＤＰ', '併殺')}${L('２ＩＦ', '打撃妨害(数字は妨害した野手)')}${L('ＩＰ', '守備妨害')}${L('ＫＰ', '振り逃げ')}</div>
-    <div><b>進塁</b>${L('(3)', '3番打者の打球で進塁')}${L('Ｓ', '盗塁')}${L('ＷＰ', '暴投')}${L('ＰＢ', '捕逸')}${L('Ｂｋ', 'ボーク')}${L('７Ｅ', '後逸(捕球の失策)')}${L('７Ｅ-4', '送球の失策')}${L('2-６Ｅ-８Ｅ', '失策が2つ')}${L('Ｏｂ', '走塁妨害')}${L('ケ1Ｅ-6', '牽制のエラー')}${L('Ｆｃ8-6-2', '野選(ほかの走者を狙った送球の間)')}${L('(8-6)', '送球・中継の間')}${L('1-3Ｅ-2', '打球のプレーの中の失策')}${L('細い線と矢印', '同じプレーで進んだ塁')}</div>
-    <div><b>アウト・得点</b>${L('I II III', 'アウト', 'rm')}${L('ＣＳ', '盗塁死')}${L('ケ1-3', '牽制死')}${L('●', '得点(自責点)')}${L('○', '得点(自責点でない)')}${L('ℓ', '残塁')}${L('斜線', '3アウト目の打者')}</div></div>`;
+    <div><b>投球</b>${L('・', 'ボール')}${L('○', '見逃し')}${L('×', '空振り')}${L('ｖ', 'ファウル')}${L('△', 'バントファウル')}${L('W', '暴投の球')}${L('P', '捕逸の球(黄はストライク)')}${L('’', '盗塁(’ の数はその回の何回目か)')}${L('<', '牽制')}${L('ケ', '牽制アウト')}</div>
+    <div><b>打者</b>${L('赤い線', '安打', 'r')}${L('数字', '打球の方向(守備番号)')}${L('∪', 'ゴロ')}${L('⌒', 'フライ')}${L('ー', 'ライナー')}${L('・', '長打', 'r')}${L('線と曲線で囲んだ数字', '内野安打', 'r')}${L('数字の下線', '強襲安打', 'r')}${L('BH5', 'バント安打(数字は打球の方向)', 'r')}${L('B', '四球', 'bl')}${L('HP', '死球', 'bl')}${L('K', '見逃し三振')}${L('S.O.', '空振り三振')}${L('□', '犠打', 'bl')}${L('△', '犠飛', 'bl')}${L('2F', 'ファウルフライ')}${L('5E', '失策(数字は失策した野手)')}${L('6E-3', '送球の失策')}${L('5-3E', '捕球の失策')}${L('Fc', '野選')}${L('DP', '併殺')}${L('2IF', '打撃妨害(数字は妨害した野手)')}${L('IP', '守備妨害')}${L('KP', '振り逃げ')}</div>
+    <div><b>進塁</b>${L('(3)', '3番打者の打球で進塁')}${L('S’', '盗塁(’ の数はその回の何回目か)')}${L('WP', '暴投')}${L('PB', '捕逸')}${L('Bk', 'ボーク')}${L('7E', '後逸(捕球の失策)')}${L('7E-4', '送球の失策')}${L('2-6E-8E', '失策が2つ')}${L('Ob', '走塁妨害')}${L('ケ1E-6', '牽制のエラー')}${L('Fc8-6-2', '野選(ほかの走者を狙った送球の間)')}${L('(8-6)', '送球・中継の間')}${L('1-3E-2', '打球のプレーの中の失策')}${L('細い線と矢印', '同じプレーで進んだ塁')}</div>
+    <div><b>アウト・得点</b>${L('I II III', 'アウト', 'rm')}${L('CS’', '盗塁死')}${L('ケ1-3', '牽制死')}${L('●', '得点(自責点)')}${L('○', '得点(自責点でない)')}${L('ℓ', '残塁')}${L('斜線', '3アウト目の打者')}</div></div>`;
   return h;
 }
 
@@ -1437,7 +1466,7 @@ function renderPaList(side) {
       let cell = '';
       if (l) {
         const [t, k] = listNote(l);
-        const seq = (l.seq && l.seq.length ? l.seq : l.pitches.map(p => ({ k: 'p', kind: p }))).map(x => x.k === 'r' ? rmark(x) : pshape(x.kind, 10)).join('');
+        const seq = listSeqHtml(l.seq && l.seq.length ? l.seq : l.pitches.map(p => ({ k: 'p', kind: p })));
         cell = `<button class="chip ${k}" data-a="pad" data-k="${l.id}">${esc(t)}${l.rbi ? `<b>${l.rbi}</b>` : ''}${runMarks(l)}<span class="pseq2">${seq}</span></button>`;
       }
       h += `<td class="${c.first ? 'ib' : ''}">${cell}</td>`;
@@ -1470,6 +1499,22 @@ function rshape(x, size) {
   return `<svg class="ps" width="${s}" height="${s}" viewBox="0 0 12 12"><path d="M1 6 H8 M5.5 2.5 L9.5 6 L5.5 9.5" fill="none" stroke="${col}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 // 打席一覧用の細い矢印(投球の間に入れても横幅を取らない)
+// 打席一覧の投球の印(No.80〜82):暴投 W・捕逸 P(その球の色。ボールは緑、ストライクは黄)、牽制アウト ケ、牽制 <、盗塁は矢印に ’ の数
+function listSeqHtml(seq) {
+  let h = '';
+  seq.forEach((x, i) => {
+    if (x.k === 'p') {
+      const nx = seq[i + 1], wp = x.wpb || (nx && nx.k === 'r' && (nx.reason === 'WP' || nx.reason === 'PB') && ['B', 'C', 'S'].includes(x.kind) ? nx.reason : '');
+      h += wp ? `<b class="psl" style="color:${x.kind === 'B' ? GRN : STR_INK}">${wp === 'WP' ? 'W' : 'P'}</b>` : pshape(x.kind, 10);
+      return;
+    }
+    if (x.reason === 'WP' || x.reason === 'PB') { const pv = seq[i - 1]; if (pv && pv.k === 'p' && ['B', 'C', 'S'].includes(pv.kind)) return; }
+    if (x.reason === 'PO') { h += '<b class="psl">ケ</b>'; return; }
+    if (x.reason === 'PK' || x.reason === 'POE') { h += '<b class="psl">&lt;</b>'; return; }
+    h += rmark(x) + (x.sbn ? `<b class="psl tk">${'’'.repeat(x.sbn)}</b>` : '');
+  });
+  return h;
+}
 function rmark(x) {
   const col = x.out ? '#d0342c' : '#1f5fbf';
   return `<svg class="ps" width="6" height="10" viewBox="0 0 6 10"><path d="M1.2 1.5 L4.8 5 L1.2 8.5" fill="none" stroke="${col}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -2001,10 +2046,11 @@ function fieldSvgBase(id, fy) {
 }
 // 内野の図(記録画面と打席の詳細で同じ形)。labels:一・二・三塁の走者の名前(いなければ null)。tap:走者をタップで記録できる
 let infieldN = 0;
-function infieldSvg(labels, tap, cls) {
+function infieldSvg(labels, tap, cls, vb) {
   const pts = [[166, 136], [120, 90], [74, 136]]; // 一・二・三塁
-  // 内野だけを横長に切り取って表示(縦の場所を空ける)
-  let h = `<svg viewBox="8 64 224 136" class="${cls || 'dia'}">${fieldSvgBase('r' + (++infieldN))}`;
+  // 内野だけを横長に切り取って表示(縦の場所を空ける)。vb:表示の範囲(記録画面は少し拡大。No.76)
+  const [vx, vy, vw, vh] = vb || [8, 64, 224, 136];
+  let h = `<svg viewBox="${vx} ${vy} ${vw} ${vh}" class="${cls || 'dia'}">${fieldSvgBase('r' + (++infieldN))}`;
   pts.forEach(([x, y]) => { h += `<rect x="${x - 6}" y="${y - 6}" width="12" height="12" transform="rotate(45 ${x} ${y})" fill="#fff" stroke="#ddd"/>`; });
   pts.forEach(([x, y], i) => {
     const lab = labels[i];
@@ -2012,14 +2058,14 @@ function infieldSvg(labels, tap, cls) {
     // ヘルメット
     h += `<g transform="translate(${x} ${y - 10})"><path d="M-12 5 A12 12 0 0 1 12 5 L16 7 L16 9 L-12 9 Z" fill="#1d2f5e"/><path d="M-8 -1 A9 9 0 0 1 4 -6" stroke="#4a5f95" stroke-width="2" fill="none"/><circle cx="7" cy="5" r="2" fill="#c8443a"/></g>`;
     // 名前はフルネームで(同じ苗字の選手がいるため)。長い名前は文字を小さくして図の中に収める
-    const fs = Math.min(11, 98 / textW(lab)), w = textW(lab) * fs + 8, cx = Math.max(10 + w / 2, Math.min(230 - w / 2, x));
+    const fs = Math.min(11, 98 / textW(lab)), w = textW(lab) * fs + 8, cx = Math.max(vx + 2 + w / 2, Math.min(vx + vw - 2 - w / 2, x));
     h += `<rect x="${cx - w / 2}" y="${y + 2}" width="${w}" height="17" rx="4" fill="#fff" stroke="#c9d3cc"/><text x="${cx}" y="${y + 14.5}" text-anchor="middle" class="rl" style="font-size:${fs.toFixed(1)}px">${esc(lab)}</text>`;
     // 走者をタップすると、その走者の動き(盗塁・失策・代走など)を記録できる
     if (tap) h += `<rect class="rtap" data-a="runtap" data-k="${i + 1}" x="${x - 40}" y="${y - 30}" width="80" height="54" fill="transparent"/>`;
   });
   return h + '</svg>';
 }
-function diamond() { return infieldSvg(S.bases.map(r => r ? r.label : null), !S.over); }
+function diamond() { return infieldSvg(S.bases.map(r => r ? r.label : null), !S.over, 'dia', [22, 64, 196, 134]); }
 // 文字列の幅(文字の大きさ1あたり):半角は約0.6、全角は1
 function textW(t) { let w = 0; for (const c of String(t)) w += /[\x20-\x7e]/.test(c) ? 0.6 : 1; return w; }
 function dots(n, max, cls) { let h = ''; for (let i = 0; i < max; i++) h += `<i class="${i < n ? cls : ''}"></i>`; return h; }
@@ -2050,36 +2096,99 @@ function posWarn() {
     return `<div class="tw" style="${f ? 'background:#ffe6e3;color:#8a1f17' : ''}"><b>${esc(teamName(side))}の守備位置:</b>${esc(msg.join('、'))}。${f ? '直すまで記録できません。' : '守備に就く前に直してください。'} <button data-a="fieldopen" data-k="${side}" class="mini">守備位置を直す</button></div>`;
   }).join('');
 }
-// 記録画面(No.75 案M5):1画面に収まるように並べる。
-// 上から 1段目(回・試合の情報・途中保存・試合終了・経過時間)→ スコアボード → B/S/O と「1つ戻す」→ 左に内野の図・右に交代のボタン 2×2
-// → 投手の欄(名前と球数、今日の成績の要約)→ 打者の欄(名前・投球の経過、右に今日の打席結果)→ 投球のボタン → 結果のボタン。
+// 記録画面(No.75 案M5 → No.79 のボタンの並び、No.76 の高さの配分)。1画面に収まるように並べる。
+// 上から 1段目(回・試合の情報・途中保存・試合終了・経過時間)→ スコアボード → 左に内野の図・右に交代のボタン 2×2
+// → 投手の欄(名前と球数、今日の成績の要約)→ 打者の欄(名前・投球の経過、右に今日の打席結果)→ B/S/O
+// → 結果のボタン 4列×4段(走塁・アウト・安打・その他。右上に「1つ戻す」)→ 列の見出しと境界線 → 投球のボタン 2段(中央の2列に よく押す4つ)。
 // 直近の記録はなし(経過タブで見る・直す)。チェンジ・あとで入力・記録のコツなどの知らせは画面の上に重ねて出す(並びがずれないように)
-function pitchSeqSvg(pitches) {
-  const ks = (pitches || []).filter(k => ['B', 'C', 'S', 'F', 'BF'].includes(k)), w = 23;
-  return `<svg class="pseqs" width="${Math.max(1, ks.length) * w}" height="22" viewBox="0 0 ${Math.max(1, ks.length) * w} 22">${ks.map((k, i) => pitchMark(k, i * w + w / 2, 11, 2.1)).join('')}</svg>`;
+// 投球の経過の印(No.80〜82):投球の印のほかに、暴投 W・捕逸 P(その球の印の代わり。ストライクの捕逸の P は黄)、
+// 盗塁・盗塁死の ’(その回の通し番号の数。その球の印の右肩)、牽制アウト「ケ」、牽制(セーフ)・牽制のエラー「<」を、起きた順に入れる
+function seqTokens(seq) {
+  const out = [];
+  for (const x of seq || []) {
+    if (x.k === 'p') { if (x.kind === 'X' || x.kind === 'HBP') continue; out.push({ t: 'p', kind: x.kind, wp: x.wpb ? (x.wpb === 'WP' ? 'W' : 'P') : '' }); continue; }
+    const last = out[out.length - 1];
+    if (x.reason === 'WP' || x.reason === 'PB') { // 古い記録(ボールのあとに暴投を押した)も、直前の球を W・P で書く
+      if (last && last.t === 'p' && !last.wp && !last.ticks && ['B', 'C', 'S'].includes(last.kind)) last.wp = x.reason === 'WP' ? 'W' : 'P';
+      continue;
+    }
+    if (x.reason === 'SB' || x.reason === 'CS') { const n = x.sbn || 1; if (last && last.t === 'p' && !last.ticks) last.ticks = n; else out.push({ t: 'tk', ticks: n }); continue; }
+    if (x.reason === 'PO') out.push({ t: 'ke' });
+    else if (x.reason === 'PK' || x.reason === 'POE') out.push({ t: 'lt' });
+  }
+  return out;
+}
+const STR_INK = '#c47a00'; // ストライクの捕逸の P(白地で読める濃い黄)
+function tokMark(tok, x, y, sc) {
+  sc = sc || 1;
+  const ink = '#1d2a22';
+  let h = '';
+  const txt = (t, fs, col, wt) => `<text x="${x}" y="${(y + fs * 0.36).toFixed(2)}" text-anchor="middle" font-size="${fs.toFixed(1)}" font-weight="${wt}" fill="${col}">${t}</text>`;
+  if (tok.t === 'p') h += tok.wp ? txt(tok.wp, 9 * sc, tok.kind === 'B' ? ink : STR_INK, 800) : pitchMark(tok.kind, x, y, sc);
+  else if (tok.t === 'ke') h += txt('ケ', 8.5 * sc, ink, 700);
+  else if (tok.t === 'lt') { const r = 2.9 * sc; h += `<path d="M${(x + r * .75).toFixed(2)} ${(y - r).toFixed(2)} L${(x - r * .75).toFixed(2)} ${y} L${(x + r * .75).toFixed(2)} ${(y + r).toFixed(2)}" fill="none" stroke="${ink}" stroke-width="${(1.3 * Math.sqrt(sc)).toFixed(2)}" stroke-linejoin="round" stroke-linecap="round"/>`; }
+  if (tok.ticks) { // 右肩に小さな「’」を数だけ(書体に左右されないよう図で描く)
+    const st = 1.35 * sc, x0 = tok.t === 'tk' ? x - st * (tok.ticks - 1) / 2 : x + (tok.wp === 'W' ? 6.6 : tok.wp ? 4.2 : 3.3) * sc, y0 = y - (sc > 1.5 ? 3.4 : 2.1) * sc;
+    for (let i = 0; i < tok.ticks; i++) { const tx = x0 + i * st; h += `<path d="M${(tx + .5 * sc).toFixed(2)} ${(y0 - 1.2 * sc).toFixed(2)} L${(tx - .35 * sc).toFixed(2)} ${(y0 + 1.2 * sc).toFixed(2)}" stroke="${ink}" stroke-width="${(0.95 * Math.sqrt(sc)).toFixed(2)}" stroke-linecap="round"/>`; }
+  }
+  return h;
+}
+function pitchSeqSvg(seq) {
+  const ts = seqTokens(seq), W = t => (t.t === 'tk' ? 12 : 23) + (t.ticks && t.wp ? 6 : 0);
+  const tw = Math.max(1, ts.reduce((a, t) => a + W(t), 0));
+  let x = 0;
+  return `<svg class="pseqs" width="${tw}" height="24" viewBox="0 0 ${tw} 24">${ts.map(t => { const w = W(t), h = tokMark(t, x + w / 2 - (t.ticks && t.t === 'p' ? 2 : 0), 13, 2.1); x += w; return h; }).join('')}</svg>`;
 }
 function todayPAs(side, slot, label) {
   return S.log.filter(l => l.type === 'pa' && l.half === side && l.slot === slot && l.batter === label);
+}
+// 結果・投球のボタン(No.79):上の4段は結果(列ごとに 走塁・アウト・安打・その他。下の段ほどよく押す)、見出しの下に投球の2段
+const REC_ROWS = [
+  [['FC', '野選', 'c-oth', 'res0'], ['DP', '併殺', 'c-out', 'res0'], ['HR', '本塁打', 'c-hit', 'res0'], ['UNDO', '↶ 1つ戻す', 'c-und', 'undo']],
+  [['WP', '暴投', 'c-run', 'rbtn'], ['FO', 'フライ', 'c-out', 'res0'], ['H3', '三塁打', 'c-hit', 'res0'], ['OBS', '妨害', 'c-oth', 'res0']],
+  [['PB', '捕逸', 'c-run', 'rbtn'], ['LO', 'ライナー', 'c-out', 'res0'], ['H2', '二塁打', 'c-hit', 'res0'], ['E', '失策', 'c-oth', 'res0', 'エラー']],
+  [['SB', '盗塁', 'c-run', 'rbtn'], ['GO', 'ゴロ', 'c-out', 'res0'], ['H1', '単打', 'c-hit', 'res0'], ['SAC', '犠打・犠飛', 'c-sac', 'res0']],
+];
+const REC_HEAD = ['走塁', 'アウト', '安打', 'その他'];
+const PITCH_ROWS = [
+  [['PK', '牽制・ボーク', 'c-run', 'rbtn'], ['C', '見逃し', 'pb str', 'p', 'ストライク'], ['S', '空振り', 'pb str', 'p', 'ストライク'], ['DROP', '振り逃げ', 'c-oth', 'drop']],
+  [['BF', 'バントファウル', 'pb fl', 'p'], ['F', 'ファウル', 'pb fl', 'p'], ['B', 'ボール', 'pb ball', 'p'], ['HBP', '死球', 'pb hbp', 'p']],
+];
+const RUN_BTNS = ['SB', 'WP', 'PB', 'PK'];
+function recBtn([k, lab, cls, act, sub]) {
+  let ok = true;
+  if (act === 'undo') ok = store.events.length > 0;
+  else if (act === 'drop') ok = dropEligible(S);
+  else if (act === 'rbtn') ok = S.bases.some(Boolean);
+  else if (act === 'res0') ok = k === 'OBS' ? true : k === 'SAC' ? resultAllowed('SH') : resultAllowed(k);
+  const isP = act === 'p';
+  return `<button data-a="${act}" data-k="${k}" class="${isP ? cls : 'rb ' + cls}${k === 'BF' || k === 'PK' ? ' bfb' : ''}" ${ok ? '' : 'disabled'}>${lab}${sub ? `<small>${sub}</small>` : ''}</button>`;
+}
+function resultGrid() {
+  const dis = S.over || fieldPosProblem();
+  return `<div class="rgrid2 ${dis ? 'dis' : ''}">${REC_ROWS.map(r => r.map(recBtn).join('')).join('')}
+    ${REC_HEAD.map(t => `<div class="rh2">${t}</div>`).join('')}
+    ${PITCH_ROWS.map(r => r.map(recBtn).join('')).join('')}</div>`;
 }
 function renderRec() {
   const g = store.game;
   const b = currentBatter(S), pit = currentPitcher(S);
   const bs = S.half, live = !S.over;
-  // 投手の欄:1行目 名前(押すと投手交代)と球数、2行目 今日の成績の要約。残り10球以下は黄、上限を超えたら赤(文の知らせは出さない)
+  // 投手の欄:1行目 名前(押すと投手交代)と球数、2行目 今日の成績の要約(1球目の前も 0 で出す。No.76)。残り10球以下は黄、上限を超えたら赤
   let pitHtml = '<div class="pit2">投手:未設定(「投手交代」から守備位置1を設定)</div>';
   if (pit) {
     const cnt = S.pitchCounts[pkey(pit.side, pit.p)] || 0;
     const lim = pit.side === g.ourSide ? pitchLimitFor(g, pit.p) : g.limits.upper;
     const cls = lim && cnt > lim ? 'over' : lim && cnt >= lim - 10 ? 'warn' : '';
-    const st = S.pit[pkey(pit.side, pit.p)];
-    const sum = st ? `${ipText(st.OUT)}回 打者${st.BF} 安${st.H} 四死${st.BB + st.HBP} 振${st.K} 失${st.R} S率${st.P ? Math.round(st.ST / st.P * 100) : 0}%` : '';
-    pitHtml = `<div class="pit2 ${cls}"><div class="r1"><span class="pn ${live ? 'tap' : ''}" ${live ? 'data-a="subq" data-k="p"' : ''}><small>投手</small> <u>${esc(plabel(pit.p))}</u>${live ? ' <i class="sw">⇄</i>' : ''}</span><span class="pc">${cnt}<small>球${lim ? ' / ' + lim : ''}</small></span></div>${sum ? `<div class="psum">${sum}</div>` : ''}</div>`;
+    const st = S.pit[pkey(pit.side, pit.p)] || { OUT: 0, BF: 0, H: 0, BB: 0, HBP: 0, K: 0, R: 0, P: 0, ST: 0 };
+    const sum = `${ipText(st.OUT)}回 打者${st.BF} 安${st.H} 四死${st.BB + st.HBP} 振${st.K} 失${st.R} S率${st.P ? Math.round(st.ST / st.P * 100) + '%' : ' -'}`;
+    pitHtml = `<div class="pit2 ${cls}"><div class="r1"><span class="pn ${live ? 'tap' : ''}" ${live ? 'data-a="subq" data-k="p"' : ''}><small>投手</small> <u>${esc(plabel(pit.p))}</u>${live ? ' <i class="sw">⇄</i>' : ''}</span><span class="pc">${cnt}<small>球${lim ? ' / ' + lim : ''}</small></span></div><div class="psum">${sum}</div></div>`;
   }
   // 打者の欄:左に 打順・名前(押すと代打)・守備位置と投球の経過(10球分の幅。超えたら左へずらして見る)、右に今日の打席結果
-  const pcs = S.pa ? S.pa.pitches.filter(k => ['B', 'C', 'S', 'F', 'BF'].includes(k)).length : 0;
+  const pcs = S.pa ? seqTokens(S.pa.seq).length : 0;
   const today = todayPAs(bs, b.slot, plabel(b.p)).map(l => { const [t, k] = listNote(l); return `<span class="chip ${k}">${esc(t)}</span>`; }).join('');
   const batHtml = `<div class="bat2"><div class="bl"><div class="bn ${live ? 'tap' : ''}" ${live ? 'data-a="subq" data-k="ph"' : ''}><span class="ord">${b.slot + 1}番</span> <u>${esc(plabel(b.p))}</u>${live ? ' <i class="sw">⇄</i>' : ''} <span class="pos">${POS_FULL[b.p.pos] || ''}</span></div>
-    <div class="pseqw"><div class="pseqs-in" id="pseqIn">${S.pa ? pitchSeqSvg(S.pa.pitches) : ''}</div>${pcs > 10 ? `<span class="more">◀ ${pcs}球</span>` : ''}</div></div>
+    <div class="pseqw"><div class="pseqs-in" id="pseqIn">${S.pa ? pitchSeqSvg(S.pa.seq) : ''}</div>${pcs > 10 ? `<span class="more">◀ ${pcs}</span>` : ''}</div></div>
     <div class="br"><div class="lbl">今日</div><div class="tdy">${today || '<span class="note">(初打席)</span>'}</div></div></div>`;
   const over = S.over ? `<div class="banner">${esc(S.endReason)}  ${esc(teamName(0))} ${total(S.score[0])} - ${total(S.score[1])} ${esc(teamName(1))}</div>
     <button data-a="gexp" data-k="${g.id}" class="big primary" style="margin-bottom:8px">試合データを${isAdmin() ? '保存する(Googleドライブ)' : '管理者に送る'}</button>` : '';
@@ -2092,46 +2201,22 @@ function renderRec() {
   <div class="top1"><div class="inn">${S.inning}回${S.half ? '裏' : '表'} <small>${esc(teamName(bs))}の攻撃</small></div><div class="tb"><button data-a="ginfo" data-k="${g.id}" class="mini">試合の情報</button>${live ? '<button data-a="midsave" class="mini">途中保存</button><button data-a="end" class="mini endb">試合終了</button>' : ''}<span class="timer ${live && timeOver() ? 'late' : ''}" id="timer">${elapsedText()}</span></div></div>
   ${scoreboard()}
   ${over}${pw}
-  <div class="cntrow"><div class="cnt"><span><b>B</b>${dots(S.balls, 3, 'b')}</span><span><b>S</b>${dots(S.strikes, 2, 's')}</span><span><b>O</b>${dots(S.outs, 2, 'o')}</span></div><button data-a="undo" class="undo1" ${store.events.length ? '' : 'disabled'}>↶ 1つ戻す</button></div>
   <div class="field2"><div class="diaw">${diamond()}</div><div class="subg">
     <button data-a="subq" data-k="p" ${live ? '' : 'disabled'}>投手交代</button><button data-a="sub" class="sm" ${live ? '' : 'disabled'}>守備・交代</button>
     <button data-a="subq" data-k="ph" ${live ? '' : 'disabled'}>代打</button><button data-a="subq" data-k="pr" ${live && runners ? '' : 'disabled'}>代走</button></div></div>
   ${pitHtml}
   ${batHtml}
-  ${S.over ? '' : `<div class="pad pad5 ${dis ? 'dis' : ''}">
-    <button data-a="p" data-k="B" class="pb ball">ボール</button>
-    <button data-a="p" data-k="C" class="pb str">見逃し</button>
-    <button data-a="p" data-k="S" class="pb str">空振り</button>
-    <button data-a="p" data-k="F" class="pb fl">ファウル</button>
-    <button data-a="p" data-k="BF" class="pb fl rare">バント<small>ファウル</small></button>
-    <button data-a="p" data-k="HBP" class="pb hbp rare">死球</button>
-  </div>
-  ${resultGrid()}`}
+  <div class="cntrow"><div class="cnt"><span><b>B</b>${dots(S.balls, 3, 'b')}</span><span><b>S</b>${dots(S.strikes, 2, 's')}</span><span><b>O</b>${dots(S.outs, 2, 'o')}</span></div>${dis && store.events.length ? '<button data-a="undo" class="undo1">↶ 1つ戻す</button>' : ''}</div>
+  ${S.over ? '' : resultGrid()}
   </div>`;
-}
-// 打撃の結果のボタン(打球の結果を最初から並べる)。押すと打った1球を数えて、野手の画面へ進む。
-// 「走者」の列(盗塁・暴投・捕逸)は少年野球で起こりやすい走者の動き。押すと走者の画面がその理由で開く
-// 犠飛は「犠打」、インフィールドフライ・ファウルフライは「フライ」、打撃妨害・守備妨害は「妨害」の次の画面で選ぶ
-const RES_COLS = [
-  ['安打', 'c-hit', [['H1', '単打'], ['H2', '二塁打'], ['H3', '三塁打'], ['HR', '本塁打']]],
-  ['アウト', 'c-out', [['GO', 'ゴロ'], ['FO', 'フライ'], ['LO', 'ライナー'], ['DP', '併殺']]],
-  ['走者', 'c-run', [['SB', '盗塁'], ['WP', '暴投', '投球がそれた'], ['PB', '捕逸', '捕手が捕れず'], ['OBS', '妨害', '打撃・守備']]],
-  ['その他', 'c-oth', [['SAC', '犠打・犠飛'], ['E', '失策'], ['FC', '野選', '野手選択'], ['DROP', '振り逃げ']]],
-];
-const RUN_BTNS = ['SB', 'WP', 'PB'];
-function resultGrid() {
-  const dis = S.over || fieldPosProblem();
-  return `<div class="rgrid ${dis ? 'dis' : ''}">${RES_COLS.map(([t, cls, ks]) => `<div class="rcol"><div class="rh">${t}</div>${ks.map(([k, lab, sub, cls2]) => {
-    const run = RUN_BTNS.includes(k);
-    const ok = k === 'DROP' ? dropEligible(S) : run ? S.bases.some(Boolean) : k === 'OBS' ? true : k === 'SAC' ? resultAllowed('SH') : resultAllowed(k);
-    return `<button data-a="${k === 'DROP' ? 'drop' : run ? 'rbtn' : 'res0'}" data-k="${k}" class="rb ${cls2 || cls}" ${ok ? '' : 'disabled'}>${lab}${sub ? `<small>${sub}</small>` : ''}</button>`;
-  }).join('')}</div>`).join('')}</div>`;
 }
 // 盗塁・暴投・捕逸のボタンで開く走者の画面の初期値。
 // 暴投・捕逸:塁上の走者を全員1つずつ進める。盗塁:次の塁が空いている走者のうち、いちばん先の走者(三塁からの本盗は、ほかにいないときだけ)
 function presetRun(m, reason) {
   m.reason = reason; m.rf = []; m.moves = {};
   for (let b = 1; b <= 3; b++) if (S.bases[b - 1]) m.moves[b] = b;
+  if (reason === 'PK') { const on = [1, 2, 3].filter(b => S.bases[b - 1]); m.pkb = on.length === 1 ? on[0] : null; return; } // 牽制:走者が1人ならその塁(No.80)
+  if (reason === 'PB') m.pk = 'B';
   if (reason === 'WP' || reason === 'PB') { for (let b = 1; b <= 3; b++) if (S.bases[b - 1]) m.moves[b] = b + 1; return; }
   const cand = [2, 1].filter(b => S.bases[b - 1] && !S.bases[b]);
   const pick = cand.length ? cand[0] : S.bases[2] ? 3 : 0;
@@ -2144,10 +2229,10 @@ function tipsCard() {
   return `<div class="tips"><b>記録のコツ</b><ul>
     <li>プレーが終わってから(ボールが止まってから)入れます。</li>
     <li>迷ったら「分からない → あとで入力」で先へ進み、試合後に経過から直せます。</li>
-    <li>間違えたら「1つ戻す」(B・S・O の右)。</li>
-    <li>投手・打者の名前(⇄)を押しても交代できます。牽制・ボーク・エラーでの進塁や代走は、図の走者をタップします。</li>
+    <li>間違えたら、ボタンの右上の「1つ戻す」。</li>
+    <li>投手・打者の名前(⇄)を押しても交代できます。代走は図の右の「代走」か、図の走者をタップします。</li>
     <li>投球数が上限まで10球以下になると投手の欄が黄、上限を超えると赤になります(上限に達しても、その打者の打撃が終わるまでは投げられます)。</li>
-    <li>盗塁・暴投・捕逸は「走者」の列のボタン、そのほかの走者の動きは図の走者をタップします。</li>
+    <li>盗塁・暴投・捕逸・牽制は「走塁」の列のボタン(暴投・捕逸はボタンだけで、その球も1つ入ります。牽制は何も起きなかったときも記録できます)。そのほかの走者の動きは図の走者をタップします。</li>
     ${'wakeLock' in navigator ? '' : '<li>この端末では記録中に画面が暗くなることがあります。端末の設定で自動ロックまでの時間を長くしてください。</li>'}
   </ul><button data-a="tipsok" class="mini">わかった(次から出さない)</button></div>`;
 }
@@ -2692,8 +2777,30 @@ function runOutDefault(reason, from) {
   return [];
 }
 // 走者の記録の画面から出来事を作る(足りないときは m.err を入れて null)
+// 暴投・捕逸(No.81):その球(暴投はボール、捕逸はボール/見逃し/空振り)と走者の進塁を続けて記録する(1つ戻すで両方戻る)。
+// 4つ目のボールのとき:打者は四球。押し出しで進む分は四球、それより先へ進んだ分だけを暴投・捕逸として、四球の打者の打順で書く。
+// 押し出しの分しか進まなかったときは、ふつうの四球として記録する(暴投・捕逸にはしない)
+function wpEvents(m, ev) {
+  const kind = m.reason === 'PB' ? (m.pk || 'B') : 'B';
+  if (kind !== 'B' && S.strikes >= 2) { m.err = '2ストライクからのストライクを捕手が捕れなかったときは、「振り逃げ」から入れてください'; return null; }
+  const pitch = { t: 'pitch', kind, wpb: m.reason };
+  if (!(kind === 'B' && S.balls >= 3)) return [pitch, ev];
+  const forced = {}; walkMoves(S.bases).forEach(x => { if (x.from !== 'B') forced[x.from] = x.to; });
+  const mv2 = [];
+  for (const x of ev.moves) {
+    const f = forced[x.from] || x.from;
+    if (x.to === 'out') mv2.push({ from: f, to: 'out' });
+    else if (x.to > f) mv2.push({ from: f, to: x.to });
+  }
+  if (!mv2.length) { toastOnly('押し出しの分だけなので、四球として記録しました'); return [{ t: 'pitch', kind: 'B' }]; }
+  return [pitch, Object.assign({}, ev, { moves: mv2, bn: currentBatter(S).slot, attach: 'prev' })];
+}
 function buildRunEv(m) {
   if (!m.reason) { m.err = '理由を選んでください'; return null; }
+  if (m.reason === 'PK') { // 牽制(セーフ):走者は動かない(No.80)
+    if (!m.pkb || !S.bases[m.pkb - 1]) { m.err = 'どの塁へ牽制したかを選んでください'; return null; }
+    return { t: 'runner', reason: 'PK', base: m.pkb, moves: [] };
+  }
   const errR = m.reason === 'E' || m.reason === 'POE';
   if (errR && !m.later && !(m.ep && m.ep.length)) { m.err = 'ボールにかかわった野手を押してください(分からないときは「あとで入力」)'; return null; }
   if (errR && !m.later && !m.ef) { m.err = '失策した野手を押してください'; return null; }
@@ -2813,13 +2920,23 @@ function modalRun() {
   // 代走のボタンは見出しのすぐ下に、横いっぱいの大きさで(No.60)
   const prunBtn = fr && !(m.chain && m.chain.length) ? `<button data-a="prun" data-k="${m.focus}" class="prunbtn">代走を出す(${esc(fr.label)} と交代)</button>` : '';
   let h = `<h3>${fr ? esc(fr.label) + '(' + m.focus + '塁)' : m.editIdx != null ? '走者の記録を直す' : '走者の記録'}</h3>${prunBtn}${m.oldText ? `<div class="tw">直す前:<b>${esc(m.oldText)}</b></div>` : ''}${m.chain && m.chain.length ? `<div class="pend"><div class="gt">ここまでの動き(確定でまとめて記録)</div>${m.chainText.map(t => `<div>${esc(t)}</div>`).join('')}</div><div class="gt" style="margin-top:6px">続きの動き</div>` : ''}
+    ${!(m.chain && m.chain.length) ? `<div class="gt">牽制(走者は戻ってセーフ)</div><div class="g2">${btn(['PK', '牽制', '何も起きなかった'])}</div>` : ''}
     <div class="gt">進塁の理由</div><div class="g2">${RUN_ADV.map(x => btn(x)).join('')}</div>
     <div class="gt" style="margin-top:8px">アウトの理由</div><div class="g2">${RUN_OUT.map(x => btn(x, 'ro2')).join('')}</div>`;
   if (m.reason === 'E' || m.reason === 'POE') h += errBlock(m);
   if (m.reason === 'POE') h += `<p class="note">スコアブックには ${esc(pickoffErrLabel({ f: m.ef, kind: m.ek, path: m.ep || [] }))}(打順) と書きます(送球がそれた = 投げた野手に E、捕れなかった = 受けた野手に E)。</p>`;
   if (m.reason === 'PO') h += `<p class="note">スコアブックには ケ+アウトにした野手(例 ケ1-3)と書きます。捕手からの牽制でアウトのときは、捕手から押してください(例 2-5)。</p>`;
-  if (m.reason) h += runnerRows(false);
+  if (m.reason === 'PK') { // 牽制(セーフ):どの塁へ投げたか。走者は動かない(No.80)
+    const on = [1, 2, 3].filter(b => S.bases[b - 1]);
+    h += `<div class="kindbox"><div class="gt">どの塁へ牽制したか<span class="must">必須</span></div><div class="kgrid">${on.map(b => `<button data-a="pkb" data-k="${b}" class="${m.pkb === b ? 'on' : ''}">${b}塁<small>${esc(S.bases[b - 1].label)}</small></button>`).join('')}</div>
+      <p class="note">投球の経過とスコアブックの投球欄に「<」を入れます(球数には数えません)。牽制でアウトなら「牽制アウト」、悪送球などで進んだら「牽制のエラー」、ボークは「ボーク」を選んでください。</p></div>`;
+  } else if (m.reason) h += runnerRows(false);
   else h += '<p class="note">理由を選ぶと、走者の行き先を選べます。</p>';
+  // 暴投・捕逸は、その球も一緒に記録する(No.81)。捕逸はボール/見逃し/空振りを選ぶ
+  if ((m.reason === 'WP' || m.reason === 'PB') && m.editIdx == null) {
+    if (m.reason === 'PB') h += `<div class="kindbox"><div class="gt">その球</div><div class="kgrid">${[['B', 'ボール'], ['C', '見逃し', 'ストライク'], ['S', '空振り', 'ストライク']].map(([k, lab, sub]) => `<button data-a="pbk" data-k="${k}" class="${(m.pk || 'B') === k ? 'on' : ''}">${lab}${sub ? `<small>${sub}</small>` : ''}</button>`).join('')}</div></div>`;
+    h += `<p class="note">確定すると、${m.reason === 'WP' ? 'ボール' : { B: 'ボール', C: '見逃しストライク', S: '空振りストライク' }[m.pk || 'B']}1球と走者の進塁をまとめて記録します(投球の経過に「${m.reason === 'WP' ? 'W' : 'P'}」)。${S.balls === 3 && (m.reason === 'WP' || (m.pk || 'B') === 'B') ? '4つ目のボールなので打者は四球。押し出しの分は四球、その先へ進んだ分を' + (m.reason === 'WP' ? '暴投' : '捕逸') + 'として記録します。' : ''}</p>`;
+  }
   const sx = sbExtra(m);
   if (sx === 'many') h += '<p class="err">盗塁のあと、さらに先の塁へ進んだ走者がいるときは、その走者だけを動かしてください(ほかの走者は「続けて進塁を記録」で入れます)。</p>';
   if (sx === 'one') {
@@ -3774,8 +3891,12 @@ document.addEventListener('click', e => {
       ui.modal = { kind: 'run', reason: null, moves: {}, focus: a === 'runtap' ? parseInt(k, 10) : null };
       for (let b = 1; b <= 3; b++) if (S.bases[b - 1]) ui.modal.moves[b] = b;
       return render();
+    case 'pkb': m.pkb = parseInt(k, 10); m.err = ''; return render();
+    case 'pbk': m.pk = k; m.err = ''; return render();
     case 'rsn': {
       m.reason = k; m.err = ''; m.rf = [];
+      if (k === 'PK') { const on = [1, 2, 3].filter(b => S.bases[b - 1]); m.pkb = m.focus || (on.length === 1 ? on[0] : null); }
+      if (k === 'PB' && !m.pk) m.pk = 'B';
       if (k === 'E') { m.ep = m.ep || []; m.ef = m.ef || ''; m.efs = m.ef ? [m.ef] : []; m.ek = m.ek || 'throw'; }
       if (k === 'POE') { // 牽制のエラー:初期値は投手 → その塁の野手(一塁 1-3、二塁 1-6、三塁 1-5)、投手の悪送球
         const fb = m.focus || [1, 2, 3].find(b => S.bases[b - 1]) || 1;
@@ -3827,7 +3948,9 @@ document.addEventListener('click', e => {
     case 'latlist': ui.modal = { kind: 'later' }; return render();
     case 'edit': { const i = parseInt(k, 10); if (!editable({ idx: i })) return; ui.modal = null; return startEdit(i); }
     case 'rok': case 'rchain': {
-      const ev = buildRunEv(m); if (!ev) return render();
+      if (m.reason === 'PK' && a === 'rchain') return render();
+      let ev = buildRunEv(m); if (!ev) return render();
+      if ((m.reason === 'WP' || m.reason === 'PB') && m.editIdx == null && !Array.isArray(ev)) { ev = wpEvents(m, ev); if (!ev) return render(); }
       if (a === 'rok' && m.editIdx != null) { ui.modal = null; return replaceEvent(m.editIdx, ev); }
       if (a === 'rchain' && m.editIdx != null) { m.err = '直すときは、続けての記録はできません'; return render(); }
       if (a === 'rok') {
@@ -3837,10 +3960,11 @@ document.addEventListener('click', e => {
       }
       // 続けて:いまの動きを仮に当てはめた状況で、次の動きを選ぶ(確定でまとめて記録。キャンセルで全部やめる)
       m.chain = (m.chain || []).concat(ev);
+      const n0 = S.log.length;
       S = replay(store.game, store.events.concat(m.chain));
-      m.chainText = (m.chainText || []).concat(S.log.slice(-(Array.isArray(ev) ? ev.length : 1)).map(l => l.text));
+      m.chainText = (m.chainText || []).concat(S.log.slice(n0).map(l => l.text));
       if (m.focus) { // タップした走者の、この動きのあとの塁(複数の失策のときは最後の出来事の行き先)
-        const evs1 = Array.isArray(ev) ? ev : [ev], mv0 = evs1[0].moves.find(x => x.from === m.focus);
+        const evs1 = (Array.isArray(ev) ? ev : [ev]).filter(e => e.t === 'runner'), mv0 = evs1.length ? evs1[0].moves.find(x => x.from === m.focus) : null;
         const to = mv0 ? evs1[evs1.length - 1].moves[0].to : null;
         if (mv0) m.focus = Array.isArray(ev) ? (typeof to === 'number' && to < 4 ? to : null) : (typeof mv0.to === 'number' && mv0.to < 4 ? mv0.to : null);
       }
